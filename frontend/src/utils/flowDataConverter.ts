@@ -21,7 +21,7 @@ export const convertToFlowData = (data: VisualizationData) => {
   // レイアウト設定
   const layout = {
     versionSpacing: 300, // バージョン間の横の間隔
-    packageSpacing: 100, // パッケージ間の縦の間隔
+    packageSpacing: 150, // パッケージ間の縦の間隔
     offsetX: 150,        // 左端からのオフセット
     offsetY: 100,        // 上端からのオフセット
   };
