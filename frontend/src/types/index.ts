@@ -28,30 +28,17 @@ export interface PackageVersionChange {
   description: string;
 }
 
-export interface FlowNode {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: {
-    label: string;
-    package: string;
-    version: string;
-    changeType: 'Added' | 'Modified' | 'Deprecated' | 'Removed';
-    description: string;
-    releaseDate: string;
-  };
-  style?: React.CSSProperties;
+import { Node, Edge, MarkerType } from 'reactflow';
+
+export interface FlowNodeData {
+  label: string;
+  package: string;
+  version: string;
+  changeType: 'Added' | 'Modified' | 'Deprecated' | 'Removed';
+  description: string;
+  releaseDate: string;
 }
 
-export interface FlowEdge {
-  id: string;
-  source: string;
-  target: string;
-  type?: string;
-  animated?: boolean;
-  style?: React.CSSProperties;
-  markerEnd?: {
-    type: string;
-    color?: string;
-  };
-}
+export type FlowNode = Node<FlowNodeData>;
+
+export type FlowEdge = Edge;

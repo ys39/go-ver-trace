@@ -1,4 +1,5 @@
 import { VisualizationData, FlowNode, FlowEdge, PackageVersionChange } from '../types';
+import { MarkerType } from 'reactflow';
 
 interface Position {
   x: number;
@@ -76,7 +77,7 @@ export const convertToFlowData = (data: VisualizationData) => {
           animated: change.change_type === 'Added',
           style: getEdgeStyle(change.change_type),
           markerEnd: {
-            type: 'arrowclosed',
+            type: MarkerType.ArrowClosed,
             color: getChangeTypeColor(change.change_type),
           },
         };
@@ -204,7 +205,7 @@ export const filterNodesByChangeType = (
   selectedChangeTypes: string[]
 ): FlowNode[] => {
   if (selectedChangeTypes.length === 0) return nodes;
-  return nodes.filter(node => selectedChangeTypes.includes(node.data.changeType));
+  return nodes.filter(node => selectedChangeTypes.indexOf(node.data.changeType) !== -1);
 };
 
 export const filterEdgesByNodes = (
@@ -212,9 +213,11 @@ export const filterEdgesByNodes = (
   visibleNodes: FlowNode[]
 ): FlowEdge[] => {
   const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
-  return edges.filter(edge => 
-    visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
-  );
+  return edges.filter(edge => {
+    const source = edge.source;
+    const target = edge.target;
+    return visibleNodeIds.has(source) && visibleNodeIds.has(target);
+  });
 };
 
 export const filterByPackage = (
@@ -222,7 +225,7 @@ export const filterByPackage = (
   selectedPackages: string[]
 ): FlowNode[] => {
   if (selectedPackages.length === 0) return nodes;
-  return nodes.filter(node => selectedPackages.includes(node.data.package));
+  return nodes.filter(node => selectedPackages.indexOf(node.data.package) !== -1);
 };
 
 export const getUniquePackages = (nodes: FlowNode[]): string[] => {

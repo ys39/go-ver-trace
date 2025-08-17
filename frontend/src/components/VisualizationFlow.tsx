@@ -11,6 +11,7 @@ import ReactFlow, {
   Connection,
   ConnectionMode,
   Panel,
+  NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -23,10 +24,11 @@ import {
   getUniquePackages,
   getUniqueChangeTypes,
 } from '../utils/flowDataConverter';
-import { FlowNode, FlowEdge } from '../types';
+import { FlowNode } from '../types';
 import FilterControls from './FilterControls';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
+import PackageDetails from './PackageDetails';
 
 const VisualizationFlow: React.FC = () => {
   const { data, loading, error, refetch } = useVisualizationData();
@@ -34,6 +36,9 @@ const VisualizationFlow: React.FC = () => {
   // フィルター状態
   const [selectedChangeTypes, setSelectedChangeTypes] = useState<string[]>([]);
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
+  
+  // 選択されたノードの詳細表示状態
+  const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
 
   // React Flowのデータを変換
   const { initialNodes, initialEdges, allPackages, allChangeTypes } = useMemo(() => {
@@ -96,14 +101,20 @@ const VisualizationFlow: React.FC = () => {
   );
 
   // ノードクリック時の処理
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    console.log('Node clicked:', node);
-    // ここでノードの詳細情報を表示する処理を追加可能
+  const onNodeClick: NodeMouseHandler = useCallback((event: React.MouseEvent, node: Node) => {
+    event.stopPropagation();
+    setSelectedNode(node as FlowNode);
+  }, []);
+  
+  // 背景クリック時の処理（詳細パネルを閉じる）
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
   }, []);
 
   // ミニマップのノード色設定
-  const nodeColor = (node: FlowNode) => {
-    switch (node.data.changeType) {
+  const nodeColor = (node: Node) => {
+    const flowNode = node as FlowNode;
+    switch (flowNode.data.changeType) {
       case 'Added':
         return '#16a34a';
       case 'Modified':
@@ -151,7 +162,11 @@ const VisualizationFlow: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         connectionMode={ConnectionMode.Loose}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={true}
         fitView
         attributionPosition="bottom-left"
       >
@@ -192,6 +207,12 @@ const VisualizationFlow: React.FC = () => {
           </div>
         </Panel>
       </ReactFlow>
+      
+      {/* パッケージ詳細表示 */}
+      <PackageDetails
+        selectedNode={selectedNode}
+        onClose={() => setSelectedNode(null)}
+      />
     </div>
   );
 };
