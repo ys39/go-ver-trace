@@ -12,6 +12,7 @@ export interface PackageChange {
   package: string;
   change_type: 'Added' | 'Modified' | 'Deprecated' | 'Removed';
   description: string;
+  summary_ja: string;
   created_at: string;
 }
 
@@ -26,6 +27,7 @@ export interface PackageVersionChange {
   release_date: string;
   change_type: 'Added' | 'Modified' | 'Deprecated' | 'Removed';
   description: string;
+  summary_ja: string;
 }
 
 import { Node, Edge, MarkerType } from 'reactflow';
@@ -36,6 +38,7 @@ export interface FlowNodeData {
   version: string;
   changeType: 'Added' | 'Modified' | 'Deprecated' | 'Removed';
   description: string;
+  summaryJa: string;
   releaseDate: string;
 }
 

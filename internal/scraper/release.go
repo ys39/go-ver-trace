@@ -22,6 +22,7 @@ type StandardLibraryChange struct {
 	Package     string
 	ChangeType  string // "Added", "Modified", "Deprecated", "Removed"
 	Description string
+	SummaryJa   string // 日本語要約
 }
 
 type ReleaseScraper struct {
@@ -91,13 +92,19 @@ func (rs *ReleaseScraper) scrapeReleaseInfo(version string) (ReleaseInfo, error)
 }
 
 func (rs *ReleaseScraper) getActualReleaseDate(version string) time.Time {
-	// 実際のGoリリース日（概算）
+	// 公式リリース履歴ページから日付を取得
+	date := rs.fetchReleaseDateFromHistory(version)
+	if !date.IsZero() {
+		return date
+	}
+	
+	// フォールバック用の日付
 	releaseDates := map[string]string{
 		"1.21": "2023-08-08",
 		"1.22": "2024-02-06", 
 		"1.23": "2024-08-13",
-		"1.24": "2025-02-01", // 予想
-		"1.25": "2025-08-01", // 予想
+		"1.24": "2025-02-01",
+		"1.25": "2025-08-01",
 	}
 	
 	if dateStr, exists := releaseDates[version]; exists {
@@ -106,36 +113,50 @@ func (rs *ReleaseScraper) getActualReleaseDate(version string) time.Time {
 		}
 	}
 	
-	// フォールバック
+	// 最終フォールバック
 	return time.Date(2023, 8, 8, 0, 0, 0, 0, time.UTC)
 }
 
-func (rs *ReleaseScraper) parseReleaseDate(text string) time.Time {
-	// "Go 1.25 (released 2025/XX/XX)" のような形式から日付を抽出
-	dateRegex := regexp.MustCompile(`\(released (\d{4}/\d{2}/\d{2})\)`)
-	matches := dateRegex.FindStringSubmatch(text)
-	if len(matches) > 1 {
-		date, err := time.Parse("2006/01/02", matches[1])
-		if err == nil {
-			return date
+// 公式リリース履歴ページからリリース日を取得
+func (rs *ReleaseScraper) fetchReleaseDateFromHistory(version string) time.Time {
+	releaseHistoryURL := "https://go.dev/doc/devel/release"
+	
+	resp, err := rs.client.Get(releaseHistoryURL)
+	if err != nil {
+		log.Printf("リリース履歴ページの取得に失敗: %v", err)
+		return time.Time{}
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Printf("リリース履歴ページの解析に失敗: %v", err)
+		return time.Time{}
+	}
+
+	// "go1.XX.0 (released YYYY-MM-DD)" の形式を探す
+	versionPattern := fmt.Sprintf("go%s.0", version)
+	
+	var releaseDate time.Time
+	// より具体的な正規表現でバージョンと日付を同時に検索
+	versionDateRegex := regexp.MustCompile(fmt.Sprintf(`%s\s*\(released\s+(\d{4}-\d{2}-\d{2})\)`, regexp.QuoteMeta(versionPattern)))
+	
+	doc.Find("*").EachWithBreak(func(i int, elem *goquery.Selection) bool {
+		text := elem.Text()
+		matches := versionDateRegex.FindStringSubmatch(text)
+		if len(matches) > 1 {
+			if date, err := time.Parse("2006-01-02", matches[1]); err == nil {
+				releaseDate = date
+				log.Printf("Go %s のリリース日を取得: %s", version, date.Format("2006-01-02"))
+				return false // 検索停止
+			}
 		}
-	}
+		return true // 検索続行
+	})
 
-	// 他の日付形式も試行
-	dateFormats := []string{
-		"January 2, 2006",
-		"Jan 2, 2006", 
-		"2006-01-02",
-	}
-
-	for _, format := range dateFormats {
-		if date, err := time.Parse(format, strings.TrimSpace(text)); err == nil {
-			return date
-		}
-	}
-
-	return time.Time{}
+	return releaseDate
 }
+
 
 func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery.Document, version string) []StandardLibraryChange {
 	var changes []StandardLibraryChange
@@ -171,10 +192,12 @@ func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery
 							description := rs.extractH3Description(elem)
 							changeType := rs.determineChangeType(description)
 							
+							summaryJa := rs.generateJapaneseSummary(description, changeType)
 							changes = append(changes, StandardLibraryChange{
 								Package:     packageName,
 								ChangeType:  changeType,
 								Description: description,
+								SummaryJa:   summaryJa,
 							})
 							
 							log.Printf("Go %s: パッケージ %s の変更を抽出", version, packageName)
@@ -244,27 +267,53 @@ func (rs *ReleaseScraper) extractH3Description(h3 *goquery.Selection) string {
 
 // Minor changesセクションを処理
 func (rs *ReleaseScraper) extractMinorChanges(h3 *goquery.Selection, version string, changes *[]StandardLibraryChange) {
-	// minor changes セクション以降のh4またはdtタグを処理
+	// minor changes セクション以降のh4またはpタグを処理
 	h3.NextAll().Each(func(i int, elem *goquery.Selection) {
 		// 次のh3やh2に到達したら終了
-		if elem.Is("h3") || elem.Is("h2") {
+		if elem.Is("h2") || elem.Is("h3") {
 			return
 		}
 		
-		// Go 1.22の場合はdtタグを処理
-		if version == "1.22" && elem.Is("dt") {
-			packageName := rs.extractPackageNameFromDt(elem)
+		
+		// Go 1.22の場合は特別処理: dlタグ内のdtタグを処理
+		if version == "1.22" && elem.Is("dl") {
+			elem.Find("dt").Each(func(j int, dt *goquery.Selection) {
+				packageName := rs.extractPackageNameFromDt(dt)
+				if packageName != "" {
+					description := rs.extractDtDescription(dt)
+					changeType := rs.determineChangeType(description)
+					summaryJa := rs.generateJapaneseSummary(description, changeType)
+					
+					*changes = append(*changes, StandardLibraryChange{
+						Package:     packageName,
+						ChangeType:  changeType,
+						Description: description,
+						SummaryJa:   summaryJa,
+					})
+					
+					log.Printf("Go %s: パッケージ %s の変更を抽出 (dl->dt)", version, packageName)
+				}
+			})
+		} else if version == "1.22" && elem.Is("p") {
+			text := elem.Text()
+			packageName := rs.extractPackageNameFromBrackets(text)
+			
 			if packageName != "" {
-				description := rs.extractDtDescription(elem)
+				description := strings.TrimSpace(text)
+				if len(description) > 200 {
+					description = description[:200] + "..."
+				}
 				changeType := rs.determineChangeType(description)
+				summaryJa := rs.generateJapaneseSummary(description, changeType)
 				
 				*changes = append(*changes, StandardLibraryChange{
 					Package:     packageName,
 					ChangeType:  changeType,
 					Description: description,
+					SummaryJa:   summaryJa,
 				})
 				
-				log.Printf("Go %s: パッケージ %s の変更を抽出 (dt)", version, packageName)
+				log.Printf("Go %s: パッケージ %s の変更を抽出 (p)", version, packageName)
 			}
 		} else if elem.Is("h4") {
 			// 他のバージョンの場合はh4タグを処理
@@ -272,11 +321,13 @@ func (rs *ReleaseScraper) extractMinorChanges(h3 *goquery.Selection, version str
 			if packageName != "" {
 				description := rs.extractPackageDescription(elem)
 				changeType := rs.determineChangeType(description)
+				summaryJa := rs.generateJapaneseSummary(description, changeType)
 				
 				*changes = append(*changes, StandardLibraryChange{
 					Package:     packageName,
 					ChangeType:  changeType,
 					Description: description,
+					SummaryJa:   summaryJa,
 				})
 				
 				log.Printf("Go %s: パッケージ %s の変更を抽出 (h4)", version, packageName)
@@ -332,14 +383,10 @@ func (rs *ReleaseScraper) extractPackageNameFromHref(href string) string {
 	// "#archive/tar" -> "archive/tar"
 	
 	// /pkg/ プレフィックスを除去
-	if strings.HasPrefix(href, "/pkg/") {
-		href = strings.TrimPrefix(href, "/pkg/")
-	}
+	href = strings.TrimPrefix(href, "/pkg/")
 	
 	// # プレフィックスを除去
-	if strings.HasPrefix(href, "#") {
-		href = strings.TrimPrefix(href, "#")
-	}
+	href = strings.TrimPrefix(href, "#")
 	
 	// 末尾の / を除去
 	href = strings.TrimSuffix(href, "/")
@@ -454,6 +501,18 @@ func (rs *ReleaseScraper) extractPackageNameFromText(text string) string {
 	return ""
 }
 
+// 角括弧形式のパッケージ名を抽出（Go 1.22用）
+func (rs *ReleaseScraper) extractPackageNameFromBrackets(text string) string {
+	// [package/name] 形式のパッケージ名を抽出
+	bracketRegex := regexp.MustCompile(`\[([a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*(?:/v[0-9]+)?)\]`)
+	matches := bracketRegex.FindStringSubmatch(text)
+	if len(matches) > 1 && rs.isValidPackageName(matches[1]) {
+		return matches[1]
+	}
+	
+	return ""
+}
+
 func (rs *ReleaseScraper) generateDummyRelease(version string) ReleaseInfo {
 	// ダミーデータを生成（デモ用）
 	baseDate := time.Date(2021, 8, 1, 0, 0, 0, 0, time.UTC)
@@ -512,10 +571,13 @@ func (rs *ReleaseScraper) generateDummyChanges(version string) []StandardLibrary
 				changeType = "Deprecated"
 			}
 			
+			description := fmt.Sprintf("Go %s での %s パッケージの改善", version, pkg)
+			summaryJa := rs.generateJapaneseSummary(description, changeType)
 			changes = append(changes, StandardLibraryChange{
 				Package:     pkg,
 				ChangeType:  changeType,
-				Description: fmt.Sprintf("Go %s での %s パッケージの改善", version, pkg),
+				Description: description,
+				SummaryJa:   summaryJa,
 			})
 		}
 	}
@@ -523,23 +585,6 @@ func (rs *ReleaseScraper) generateDummyChanges(version string) []StandardLibrary
 	return changes
 }
 
-func (rs *ReleaseScraper) extractPackageName(text string) string {
-	// パッケージ名を抽出（例: "The fmt package", "Package crypto/tls"）
-	packageRegex := regexp.MustCompile(`(?:The\s+|Package\s+)?([a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*)\s+package`)
-	matches := packageRegex.FindStringSubmatch(text)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-
-	// 直接パッケージ名が書かれている場合
-	directRegex := regexp.MustCompile(`^([a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*)`)
-	matches = directRegex.FindStringSubmatch(strings.TrimSpace(text))
-	if len(matches) > 1 {
-		return matches[1]
-	}
-
-	return ""
-}
 
 func (rs *ReleaseScraper) determineChangeType(description string) string {
 	description = strings.ToLower(description)
@@ -554,6 +599,83 @@ func (rs *ReleaseScraper) determineChangeType(description string) string {
 		return "Removed"
 	}
 	return "Modified"
+}
+
+// 英語の変更内容を日本語で要約
+func (rs *ReleaseScraper) generateJapaneseSummary(description, changeType string) string {
+	if description == "" {
+		return ""
+	}
+
+	// 基本的なパターンマッチングによる要約
+	description = strings.ToLower(description)
+	
+	switch changeType {
+	case "Added":
+		if strings.Contains(description, "method") {
+			if strings.Contains(description, "new method") || strings.Contains(description, "added method") {
+				return "新しいメソッドが追加されました"
+			}
+		}
+		if strings.Contains(description, "function") {
+			return "新しい関数が追加されました"
+		}
+		if strings.Contains(description, "type") {
+			return "新しい型が追加されました"
+		}
+		if strings.Contains(description, "field") {
+			return "新しいフィールドが追加されました"
+		}
+		if strings.Contains(description, "constant") || strings.Contains(description, "const") {
+			return "新しい定数が追加されました"
+		}
+		if strings.Contains(description, "variable") || strings.Contains(description, "var") {
+			return "新しい変数が追加されました"
+		}
+		return "新機能が追加されました"
+	
+	case "Modified":
+		if strings.Contains(description, "performance") {
+			return "パフォーマンスが改善されました"
+		}
+		if strings.Contains(description, "behavior") || strings.Contains(description, "behaviour") {
+			return "動作が変更されました"
+		}
+		if strings.Contains(description, "error") {
+			return "エラー処理が改善されました"
+		}
+		if strings.Contains(description, "documentation") || strings.Contains(description, "doc") {
+			return "ドキュメントが更新されました"
+		}
+		if strings.Contains(description, "fix") {
+			return "バグが修正されました"
+		}
+		if strings.Contains(description, "support") {
+			return "サポートが拡張されました"
+		}
+		return "機能が改善されました"
+	
+	case "Deprecated":
+		if strings.Contains(description, "method") {
+			return "メソッドが非推奨になりました"
+		}
+		if strings.Contains(description, "function") {
+			return "関数が非推奨になりました"
+		}
+		return "非推奨となりました"
+	
+	case "Removed":
+		if strings.Contains(description, "method") {
+			return "メソッドが削除されました"
+		}
+		if strings.Contains(description, "function") {
+			return "関数が削除されました"
+		}
+		return "機能が削除されました"
+	
+	default:
+		return "変更が行われました"
+	}
 }
 
 func (rs *ReleaseScraper) GetTargetVersions() []string {

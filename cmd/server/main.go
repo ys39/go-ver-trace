@@ -86,7 +86,7 @@ func fetchAndStoreData(db *database.Database) error {
 				continue
 			}
 			
-			err := db.SavePackageChange(releaseID, change.Package, change.ChangeType, change.Description)
+			err := db.SavePackageChangeWithSummary(releaseID, change.Package, change.ChangeType, change.Description, change.SummaryJa)
 			if err != nil {
 				log.Printf("パッケージ変更保存エラー (%s): %v", change.Package, err)
 			}

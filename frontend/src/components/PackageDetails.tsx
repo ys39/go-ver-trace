@@ -176,6 +176,21 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
   );
 };
 
+const getChangeTypeDisplayName = (changeType: string): string => {
+  switch (changeType) {
+    case 'Added':
+      return '追加';
+    case 'Modified':
+      return '変更';
+    case 'Deprecated':
+      return '非推奨';
+    case 'Removed':
+      return '削除';
+    default:
+      return changeType;
+  }
+};
+
 const getChangeTypeBadgeStyle = (changeType: string): React.CSSProperties => {
   switch (changeType) {
     case 'Added':

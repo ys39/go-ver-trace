@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { VisualizationData, Release, PackageChange } from '../types';
+import { useState, useEffect } from "react";
+import { VisualizationData, Release, PackageChange } from "../types";
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = "http://localhost:8080/api";
 
 export const useVisualizationData = () => {
   const [data, setData] = useState<VisualizationData | null>(null);
@@ -12,17 +12,19 @@ export const useVisualizationData = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`${API_BASE_URL}/visualization`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setData(result);
     } catch (err) {
-      console.error('データ取得エラー:', err);
-      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+      console.error("データ取得エラー:", err);
+      setError(
+        err instanceof Error ? err.message : "データの取得に失敗しました"
+      );
     } finally {
       setLoading(false);
     }
@@ -49,17 +51,21 @@ export const useReleases = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(`${API_BASE_URL}/releases`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setReleases(data);
       } catch (err) {
-        console.error('リリース情報取得エラー:', err);
-        setError(err instanceof Error ? err.message : 'リリース情報の取得に失敗しました');
+        console.error("リリース情報取得エラー:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "リリース情報の取得に失敗しました"
+        );
       } finally {
         setLoading(false);
       }
@@ -81,17 +87,21 @@ export const usePackages = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(`${API_BASE_URL}/packages`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setPackages(data);
       } catch (err) {
-        console.error('パッケージ情報取得エラー:', err);
-        setError(err instanceof Error ? err.message : 'パッケージ情報の取得に失敗しました');
+        console.error("パッケージ情報取得エラー:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "パッケージ情報の取得に失敗しました"
+        );
       } finally {
         setLoading(false);
       }
@@ -115,17 +125,23 @@ export const usePackageChanges = (packageName: string) => {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch(`${API_BASE_URL}/package/${encodeURIComponent(packageName)}`);
+
+        const response = await fetch(
+          `${API_BASE_URL}/package/${encodeURIComponent(packageName)}`
+        );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setChanges(data);
       } catch (err) {
-        console.error('パッケージ変更情報取得エラー:', err);
-        setError(err instanceof Error ? err.message : 'パッケージ変更情報の取得に失敗しました');
+        console.error("パッケージ変更情報取得エラー:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "パッケージ変更情報の取得に失敗しました"
+        );
       } finally {
         setLoading(false);
       }
@@ -138,7 +154,7 @@ export const usePackageChanges = (packageName: string) => {
 };
 
 export const useHealthCheck = () => {
-  const [status, setStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [status, setStatus] = useState<"checking" | "ok" | "error">("checking");
   const [details, setDetails] = useState<any>(null);
 
   useEffect(() => {
@@ -148,14 +164,16 @@ export const useHealthCheck = () => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setDetails(data);
-        setStatus(data.status === 'ok' ? 'ok' : 'error');
+        setStatus(data.status === "ok" ? "ok" : "error");
       } catch (err) {
-        console.error('ヘルスチェックエラー:', err);
-        setStatus('error');
-        setDetails({ error: err instanceof Error ? err.message : 'API接続に失敗しました' });
+        console.error("ヘルスチェックエラー:", err);
+        setStatus("error");
+        setDetails({
+          error: err instanceof Error ? err.message : "API接続に失敗しました",
+        });
       }
     };
 
@@ -168,16 +186,16 @@ export const useHealthCheck = () => {
 export const refreshData = async (): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE_URL}/refresh`, {
-      method: 'POST',
+      method: "POST",
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return true;
   } catch (err) {
-    console.error('データ更新エラー:', err);
+    console.error("データ更新エラー:", err);
     return false;
   }
 };

@@ -19,6 +19,7 @@ type PackageVersionChange struct {
 	ReleaseDate time.Time `json:"release_date"`
 	ChangeType  string    `json:"change_type"`
 	Description string    `json:"description"`
+	SummaryJa   string    `json:"summary_ja"`
 }
 
 type VisualizationData struct {
@@ -84,6 +85,7 @@ func (sa *StdLibAnalyzer) buildPackageTimeline(releases []scraper.ReleaseInfo) {
 				ReleaseDate: release.ReleaseDate,
 				ChangeType:  change.ChangeType,
 				Description: change.Description,
+				SummaryJa:   change.SummaryJa,
 			}
 
 			sa.packageMap[packageName] = append(sa.packageMap[packageName], versionChange)

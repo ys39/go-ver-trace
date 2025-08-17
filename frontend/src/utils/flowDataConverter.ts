@@ -61,6 +61,7 @@ export const convertToFlowData = (data: VisualizationData) => {
           version: change.version,
           changeType: change.change_type,
           description: change.description,
+          summaryJa: change.summary_ja,
           releaseDate: change.release_date,
         },
         style: getNodeStyle(change.change_type),

@@ -26,6 +26,7 @@ type PackageChange struct {
 	Package     string    `json:"package"`
 	ChangeType  string    `json:"change_type"`
 	Description string    `json:"description"`
+	SummaryJa   string    `json:"summary_ja"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -63,6 +64,7 @@ func (d *Database) createTables() error {
 			package TEXT NOT NULL,
 			change_type TEXT NOT NULL,
 			description TEXT,
+			summary_ja TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (release_id) REFERENCES releases (id) ON DELETE CASCADE
 		)`,
@@ -77,6 +79,33 @@ func (d *Database) createTables() error {
 		}
 	}
 
+	// 既存テーブルに summary_ja カラムを追加するマイグレーション
+	if err := d.addSummaryJaColumn(); err != nil {
+		return fmt.Errorf("failed to migrate summary_ja column: %w", err)
+	}
+
+	return nil
+}
+
+// 既存のテーブルに summary_ja カラムを追加
+func (d *Database) addSummaryJaColumn() error {
+	// カラムが存在するかチェック
+	var count int
+	err := d.db.QueryRow(`
+		SELECT COUNT(*) FROM pragma_table_info('package_changes') 
+		WHERE name = 'summary_ja'
+	`).Scan(&count)
+	
+	if err != nil {
+		return err
+	}
+	
+	// カラムが存在しない場合のみ追加
+	if count == 0 {
+		_, err = d.db.Exec(`ALTER TABLE package_changes ADD COLUMN summary_ja TEXT`)
+		return err
+	}
+	
 	return nil
 }
 
@@ -100,6 +129,15 @@ func (d *Database) SavePackageChange(releaseID int, packageName, changeType, des
 	_, err := d.db.Exec(query, releaseID, packageName, changeType, description)
 	if err != nil {
 		return fmt.Errorf("failed to save package change: %w", err)
+	}
+	return nil
+}
+
+func (d *Database) SavePackageChangeWithSummary(releaseID int, packageName, changeType, description, summaryJa string) error {
+	query := `INSERT INTO package_changes (release_id, package, change_type, description, summary_ja) VALUES (?, ?, ?, ?, ?)`
+	_, err := d.db.Exec(query, releaseID, packageName, changeType, description, summaryJa)
+	if err != nil {
+		return fmt.Errorf("failed to save package change with summary: %w", err)
 	}
 	return nil
 }
@@ -146,7 +184,8 @@ func (d *Database) GetPackageChanges(releaseID int) ([]PackageChange, error) {
 }
 
 func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
-	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, pc.created_at 
+	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, 
+			  COALESCE(pc.summary_ja, '') as summary_ja, pc.created_at 
 			  FROM package_changes pc
 			  JOIN releases r ON pc.release_id = r.id
 			  ORDER BY r.release_date, pc.package`
@@ -159,7 +198,7 @@ func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
 	var changes []PackageChange
 	for rows.Next() {
 		var c PackageChange
-		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan package change: %w", err)
 		}
 		changes = append(changes, c)
@@ -169,7 +208,8 @@ func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
 }
 
 func (d *Database) GetPackageEvolution(packageName string) ([]PackageChange, error) {
-	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, pc.created_at 
+	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, 
+			  COALESCE(pc.summary_ja, '') as summary_ja, pc.created_at 
 			  FROM package_changes pc
 			  JOIN releases r ON pc.release_id = r.id
 			  WHERE pc.package = ?
@@ -183,7 +223,7 @@ func (d *Database) GetPackageEvolution(packageName string) ([]PackageChange, err
 	var changes []PackageChange
 	for rows.Next() {
 		var c PackageChange
-		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan package change: %w", err)
 		}
 		changes = append(changes, c)
@@ -242,6 +282,7 @@ func (d *Database) GetVisualizationData() (map[string]interface{}, error) {
 						"release_date": release.ReleaseDate,
 						"change_type":  change.ChangeType,
 						"description":  change.Description,
+						"summary_ja":   change.SummaryJa,
 					})
 					break
 				}
