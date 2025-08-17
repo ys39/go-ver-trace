@@ -1,5 +1,11 @@
-import { VisualizationData, FlowNode, FlowEdge, PackageVersionChange } from '../types';
-import { MarkerType } from 'reactflow';
+import {
+  VisualizationData,
+  FlowNode,
+  FlowEdge,
+  PackageVersionChange,
+} from "../types";
+import { MarkerType } from "reactflow";
+import { LAYOUT_CONFIG } from "./layoutConstants";
 
 interface Position {
   x: number;
@@ -9,22 +15,18 @@ interface Position {
 export const convertToFlowData = (data: VisualizationData) => {
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
-  
+
   // バージョンを時系列順にソート
   const sortedReleases = [...data.releases].sort(
-    (a, b) => new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
+    (a, b) =>
+      new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
   );
 
   // パッケージをアルファベット順にソート
   const sortedPackages = [...data.packages].sort();
 
-  // レイアウト設定
-  const layout = {
-    versionSpacing: 300, // バージョン間の横の間隔
-    packageSpacing: 150, // パッケージ間の縦の間隔
-    offsetX: 150,        // 左端からのオフセット
-    offsetY: 100,        // 上端からのオフセット
-  };
+  // 共通レイアウト設定を使用
+  const layout = LAYOUT_CONFIG;
 
   // 各パッケージのノードとエッジを生成
   sortedPackages.forEach((packageName, packageIndex) => {
@@ -33,14 +35,17 @@ export const convertToFlowData = (data: VisualizationData) => {
 
     // バージョン順にソート
     const sortedEvolution = [...packageEvolution].sort(
-      (a, b) => new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
+      (a, b) =>
+        new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
     );
 
     // パッケージごとに独立してpreviousNodeIdを管理
     let previousNodeId: string | null = null;
 
     sortedEvolution.forEach((change: PackageVersionChange, evolutionIndex) => {
-      const versionIndex = sortedReleases.findIndex(r => r.version === change.version);
+      const versionIndex = sortedReleases.findIndex(
+        (r) => r.version === change.version
+      );
       if (versionIndex === -1) return;
 
       const position: Position = {
@@ -53,7 +58,7 @@ export const convertToFlowData = (data: VisualizationData) => {
       // ノードを作成
       const node: FlowNode = {
         id: nodeId,
-        type: 'default',
+        type: "default",
         position,
         data: {
           label: `${packageName}\nv${change.version}`,
@@ -74,14 +79,17 @@ export const convertToFlowData = (data: VisualizationData) => {
         // previousNodeIdが確実に同じパッケージのものであることを確認
         const previousChange = sortedEvolution[evolutionIndex - 1];
         const expectedPreviousNodeId = `${packageName}-${previousChange.version}`;
-        
-        if (previousNodeId === expectedPreviousNodeId && previousChange.version !== change.version) {
+
+        if (
+          previousNodeId === expectedPreviousNodeId &&
+          previousChange.version !== change.version
+        ) {
           const edge: FlowEdge = {
             id: `${previousNodeId}-to-${nodeId}`,
             source: previousNodeId,
             target: nodeId,
-            type: 'smoothstep',
-            animated: change.change_type === 'Added',
+            type: "smoothstep",
+            animated: change.change_type === "Added",
             style: getEdgeStyle(change.change_type),
             markerEnd: {
               type: MarkerType.ArrowClosed,
@@ -102,57 +110,57 @@ export const convertToFlowData = (data: VisualizationData) => {
 
 export const getNodeStyle = (changeType: string): React.CSSProperties => {
   const baseStyle: React.CSSProperties = {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '2px solid',
-    fontSize: '12px',
-    fontWeight: '500',
-    textAlign: 'center',
-    minWidth: '120px',
-    minHeight: '60px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-    transition: 'all 0.2s ease',
+    padding: "10px",
+    borderRadius: "8px",
+    border: "2px solid",
+    fontSize: "12px",
+    fontWeight: "500",
+    textAlign: "center",
+    minWidth: `${LAYOUT_CONFIG.nodeMinWidth}px`,
+    minHeight: `${LAYOUT_CONFIG.nodeMinHeight}px`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+    transition: "all 0.2s ease",
   };
 
   switch (changeType) {
-    case 'Added':
+    case "Added":
       return {
         ...baseStyle,
-        backgroundColor: '#dcfce7',
-        borderColor: '#16a34a',
-        color: '#166534',
+        backgroundColor: "#dcfce7",
+        borderColor: "#16a34a",
+        color: "#166534",
       };
-    case 'Modified':
+    case "Modified":
       return {
         ...baseStyle,
-        backgroundColor: '#fef3c7',
-        borderColor: '#d97706',
-        color: '#92400e',
+        backgroundColor: "#fef3c7",
+        borderColor: "#d97706",
+        color: "#92400e",
       };
-    case 'Deprecated':
+    case "Deprecated":
       return {
         ...baseStyle,
-        backgroundColor: '#fed7d7',
-        borderColor: '#e53e3e',
-        color: '#c53030',
+        backgroundColor: "#fed7d7",
+        borderColor: "#e53e3e",
+        color: "#c53030",
       };
-    case 'Removed':
+    case "Removed":
       return {
         ...baseStyle,
-        backgroundColor: '#f3f4f6',
-        borderColor: '#6b7280',
-        color: '#374151',
-        textDecoration: 'line-through',
+        backgroundColor: "#f3f4f6",
+        borderColor: "#6b7280",
+        color: "#374151",
+        textDecoration: "line-through",
       };
     default:
       return {
         ...baseStyle,
-        backgroundColor: '#f8fafc',
-        borderColor: '#e2e8f0',
-        color: '#475569',
+        backgroundColor: "#f8fafc",
+        borderColor: "#e2e8f0",
+        color: "#475569",
       };
   }
 };
@@ -163,48 +171,48 @@ export const getEdgeStyle = (changeType: string): React.CSSProperties => {
   };
 
   switch (changeType) {
-    case 'Added':
+    case "Added":
       return {
         ...baseStyle,
-        stroke: '#16a34a',
+        stroke: "#16a34a",
       };
-    case 'Modified':
+    case "Modified":
       return {
         ...baseStyle,
-        stroke: '#d97706',
+        stroke: "#d97706",
       };
-    case 'Deprecated':
+    case "Deprecated":
       return {
         ...baseStyle,
-        stroke: '#e53e3e',
-        strokeDasharray: '5,5',
+        stroke: "#e53e3e",
+        strokeDasharray: "5,5",
       };
-    case 'Removed':
+    case "Removed":
       return {
         ...baseStyle,
-        stroke: '#6b7280',
-        strokeDasharray: '10,5',
+        stroke: "#6b7280",
+        strokeDasharray: "10,5",
       };
     default:
       return {
         ...baseStyle,
-        stroke: '#94a3b8',
+        stroke: "#94a3b8",
       };
   }
 };
 
 export const getChangeTypeColor = (changeType: string): string => {
   switch (changeType) {
-    case 'Added':
-      return '#16a34a';
-    case 'Modified':
-      return '#d97706';
-    case 'Deprecated':
-      return '#e53e3e';
-    case 'Removed':
-      return '#6b7280';
+    case "Added":
+      return "#16a34a";
+    case "Modified":
+      return "#d97706";
+    case "Deprecated":
+      return "#e53e3e";
+    case "Removed":
+      return "#6b7280";
     default:
-      return '#94a3b8';
+      return "#94a3b8";
   }
 };
 
@@ -213,15 +221,17 @@ export const filterNodesByChangeType = (
   selectedChangeTypes: string[]
 ): FlowNode[] => {
   if (selectedChangeTypes.length === 0) return nodes;
-  return nodes.filter(node => selectedChangeTypes.indexOf(node.data.changeType) !== -1);
+  return nodes.filter(
+    (node) => selectedChangeTypes.indexOf(node.data.changeType) !== -1
+  );
 };
 
 export const filterEdgesByNodes = (
   edges: FlowEdge[],
   visibleNodes: FlowNode[]
 ): FlowEdge[] => {
-  const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
-  return edges.filter(edge => {
+  const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
+  return edges.filter((edge) => {
     const source = edge.source;
     const target = edge.target;
     return visibleNodeIds.has(source) && visibleNodeIds.has(target);
@@ -233,15 +243,17 @@ export const filterByPackage = (
   selectedPackages: string[]
 ): FlowNode[] => {
   if (selectedPackages.length === 0) return nodes;
-  return nodes.filter(node => selectedPackages.indexOf(node.data.package) !== -1);
+  return nodes.filter(
+    (node) => selectedPackages.indexOf(node.data.package) !== -1
+  );
 };
 
 export const getUniquePackages = (nodes: FlowNode[]): string[] => {
-  const packages = new Set(nodes.map(node => node.data.package));
+  const packages = new Set(nodes.map((node) => node.data.package));
   return Array.from(packages).sort();
 };
 
 export const getUniqueChangeTypes = (nodes: FlowNode[]): string[] => {
-  const changeTypes = new Set(nodes.map(node => node.data.changeType));
+  const changeTypes = new Set(nodes.map((node) => node.data.changeType));
   return Array.from(changeTypes).sort();
 };

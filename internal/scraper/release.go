@@ -188,10 +188,10 @@ func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery
 					} else {
 						// h3の内容をパッケージ名として処理
 						packageName := rs.extractPackageNameFromH3(h3Text)
+						description := rs.extractH3Description(elem)
+						
 						if packageName != "" {
-							description := rs.extractH3Description(elem)
 							changeType := rs.determineChangeType(description)
-							
 							summaryJa := rs.generateJapaneseSummary(description, changeType)
 							changes = append(changes, StandardLibraryChange{
 								Package:     packageName,
@@ -201,6 +201,23 @@ func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery
 							})
 							
 							log.Printf("Go %s: パッケージ %s の変更を抽出", version, packageName)
+						}
+						
+						// 説明文から追加のパッケージを抽出（例：encoding/json/jsontext）
+						additionalPackages := rs.extractPackagesFromDescription(description)
+						for _, addPkg := range additionalPackages {
+							if addPkg != packageName { // 重複回避
+								changeType := rs.determineChangeType(description)
+								summaryJa := rs.generateJapaneseSummary(description, changeType)
+								changes = append(changes, StandardLibraryChange{
+									Package:     addPkg,
+									ChangeType:  changeType,
+									Description: description,
+									SummaryJa:   summaryJa,
+								})
+								
+								log.Printf("Go %s: 追加パッケージ %s の変更を抽出", version, addPkg)
+							}
 						}
 					}
 				}
@@ -215,15 +232,35 @@ func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery
 func (rs *ReleaseScraper) extractPackageNameFromH3(h3Text string) string {
 	// "New math/rand/v2 package" -> "math/rand/v2"
 	// "New go/version package" -> "go/version"
+	// "New experimental encoding/json/v2 package" -> "encoding/json/v2"
 	if strings.Contains(strings.ToLower(h3Text), "new") && strings.Contains(strings.ToLower(h3Text), "package") {
-		// "New" と "package" の間の文字列を抽出
+		// パッケージ名のパターンを正規表現で抽出
+		packageRegex := regexp.MustCompile(`([a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*(?:/v[0-9]+)?)\s+package`)
+		matches := packageRegex.FindStringSubmatch(strings.ToLower(h3Text))
+		if len(matches) > 1 {
+			packageName := matches[1]
+			if rs.isValidPackageName(packageName) {
+				return packageName
+			}
+		}
+		
+		// フォールバック: 単語ベースの抽出
 		words := strings.Fields(h3Text)
 		for i, word := range words {
-			if strings.ToLower(word) == "new" && i+1 < len(words) {
-				next := words[i+1]
-				// パッケージ名らしい文字列かチェック
-				if rs.isValidPackageName(next) {
-					return next
+			if strings.ToLower(word) == "new" {
+				// "new" 以降の単語を順次チェック
+				for j := i + 1; j < len(words); j++ {
+					candidate := words[j]
+					if strings.ToLower(candidate) == "package" {
+						break
+					}
+					if strings.ToLower(candidate) == "experimental" {
+						continue // "experimental" はスキップ
+					}
+					// パッケージ名らしい文字列かチェック
+					if rs.isValidPackageName(candidate) {
+						return candidate
+					}
 				}
 			}
 		}
@@ -235,6 +272,59 @@ func (rs *ReleaseScraper) extractPackageNameFromH3(h3Text string) string {
 	}
 	
 	return ""
+}
+
+// 説明文からパッケージ名を抽出
+func (rs *ReleaseScraper) extractPackagesFromDescription(description string) []string {
+	var packages []string
+	
+	// より厳密なパッケージ名のパターンを抽出（スラッシュを含むものを優先）
+	packageRegex := regexp.MustCompile(`\b([a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)+(?:/v[0-9]+)?)\b`)
+	matches := packageRegex.FindAllStringSubmatch(description, -1)
+	
+	for _, match := range matches {
+		if len(match) > 1 {
+			packageName := match[1]
+			if rs.isValidPackageName(packageName) && rs.isKnownStandardPackage(packageName) {
+				// 重複チェック
+				isDuplicate := false
+				for _, existing := range packages {
+					if existing == packageName {
+						isDuplicate = true
+						break
+					}
+				}
+				if !isDuplicate {
+					packages = append(packages, packageName)
+				}
+			}
+		}
+	}
+	
+	return packages
+}
+
+// 既知の標準ライブラリパッケージかどうかチェック
+func (rs *ReleaseScraper) isKnownStandardPackage(packageName string) bool {
+	// 標準ライブラリの既知のパッケージパターン
+	knownPrefixes := []string{
+		"archive/", "bufio", "bytes", "compress/", "container/", "context",
+		"crypto/", "database/", "debug/", "embed", "encoding/", "errors",
+		"expvar", "flag", "fmt", "go/", "hash/", "html/", "image/", "index/",
+		"io", "log/", "math/", "mime/", "net/", "os/", "path/", "plugin",
+		"reflect", "regexp/", "runtime/", "sort", "strconv", "strings",
+		"sync/", "syscall", "testing/", "text/", "time", "unicode/", "unsafe",
+		"cmp", "maps", "slices", "unique", "weak", "iter", "structs",
+	}
+	
+	// 完全一致または既知のプレフィックスで始まるかチェック
+	for _, prefix := range knownPrefixes {
+		if packageName == prefix || strings.HasPrefix(packageName, prefix) {
+			return true
+		}
+	}
+	
+	return false
 }
 
 // h3の説明文を抽出
@@ -475,6 +565,29 @@ func (rs *ReleaseScraper) isValidPackageName(text string) bool {
 	// 有効なGoパッケージ名かどうかをチェック
 	if text == "" {
 		return false
+	}
+	
+	// 除外すべき無効なパッケージ名リスト
+	invalidNames := []string{
+		"experimental", 
+		"minor", 
+		"changes", 
+		"library",
+		"standard",
+		"new",
+		"performance",
+		"improvements",
+		"enhancements",
+		"fixes",
+		"security",
+		"compatibility",
+	}
+	
+	textLower := strings.ToLower(text)
+	for _, invalid := range invalidNames {
+		if textLower == invalid {
+			return false
+		}
 	}
 	
 	// 基本的なパッケージ名のパターン（v2パッケージにも対応）

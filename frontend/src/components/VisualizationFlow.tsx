@@ -25,10 +25,12 @@ import {
   getUniqueChangeTypes,
 } from '../utils/flowDataConverter';
 import { FlowNode } from '../types';
+import { LAYOUT_CONFIG } from '../utils/layoutConstants';
 import FilterControls from './FilterControls';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import PackageDetails from './PackageDetails';
+import TimelineAxis from './TimelineAxis';
 
 const VisualizationFlow: React.FC = () => {
   const { data, loading, error, refetch } = useVisualizationData();
@@ -154,22 +156,33 @@ const VisualizationFlow: React.FC = () => {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        connectionMode={ConnectionMode.Loose}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        fitView
-        attributionPosition="bottom-left"
-      >
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      {/* タイムライン軸 */}
+      {data && data.releases && (
+        <TimelineAxis versions={data.releases} />
+      )}
+      
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        paddingTop: `${LAYOUT_CONFIG.timelineHeight}px` 
+      }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          connectionMode={ConnectionMode.Loose}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={true}
+          fitView
+          attributionPosition="bottom-left"
+          style={{ height: `calc(100% - ${LAYOUT_CONFIG.timelineHeight}px)` }}
+        >
         <Background color="#aaa" gap={16} />
         <Controls />
         <MiniMap 
@@ -206,7 +219,8 @@ const VisualizationFlow: React.FC = () => {
             <div>エッジ: {edges.length} / {initialEdges.length}</div>
           </div>
         </Panel>
-      </ReactFlow>
+        </ReactFlow>
+      </div>
       
       {/* パッケージ詳細表示 */}
       <PackageDetails
