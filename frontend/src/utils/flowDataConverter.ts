@@ -58,7 +58,7 @@ export const convertToFlowData = (data: VisualizationData) => {
       // ノードを作成
       const node: FlowNode = {
         id: nodeId,
-        type: "default",
+        type: "custom",
         position,
         data: {
           label: `${packageName}\nv${change.version}`,
@@ -88,6 +88,8 @@ export const convertToFlowData = (data: VisualizationData) => {
             id: `${previousNodeId}-to-${nodeId}`,
             source: previousNodeId,
             target: nodeId,
+            sourceHandle: "right",
+            targetHandle: "left",
             type: "smoothstep",
             animated: change.change_type === "Added",
             style: getEdgeStyle(change.change_type),

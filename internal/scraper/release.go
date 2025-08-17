@@ -100,6 +100,9 @@ func (rs *ReleaseScraper) getActualReleaseDate(version string) time.Time {
 	
 	// フォールバック用の日付
 	releaseDates := map[string]string{
+		"1.18": "2022-03-15",
+		"1.19": "2022-08-02", 
+		"1.20": "2023-02-01",
 		"1.21": "2023-08-08",
 		"1.22": "2024-02-06", 
 		"1.23": "2024-08-13",
@@ -631,12 +634,12 @@ func (rs *ReleaseScraper) generateDummyRelease(version string) ReleaseInfo {
 	baseDate := time.Date(2021, 8, 1, 0, 0, 0, 0, time.UTC)
 	
 	// バージョンに基づいて日付を計算
-	versionFloat := 1.21
+	versionFloat := 1.18
 	if v := parseVersionFloat(version); v > 0 {
 		versionFloat = v
 	}
 	
-	dayOffset := int((versionFloat - 1.21) * 365 / 4) // 4バージョン/年と仮定
+	dayOffset := int((versionFloat - 1.18) * 365 / 4) // 4バージョン/年と仮定
 	releaseDate := baseDate.AddDate(0, 0, dayOffset)
 	
 	return ReleaseInfo{
@@ -792,8 +795,8 @@ func (rs *ReleaseScraper) generateJapaneseSummary(description, changeType string
 }
 
 func (rs *ReleaseScraper) GetTargetVersions() []string {
-	// Go 1.21-1.25の5世代
-	return []string{"1.21", "1.22", "1.23", "1.24", "1.25"}
+	// Go 1.18-1.25の8世代
+	return []string{"1.18", "1.19", "1.20", "1.21", "1.22", "1.23", "1.24", "1.25"}
 }
 
 func (rs *ReleaseScraper) GetVersionDocumentURL(version string) string {

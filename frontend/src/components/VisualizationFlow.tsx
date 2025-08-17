@@ -31,16 +31,25 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import PackageDetails from './PackageDetails';
 import TimelineAxis from './TimelineAxis';
+import CustomNode from './CustomNode';
 
 const VisualizationFlow: React.FC = () => {
   const { data, loading, error, refetch } = useVisualizationData();
-  
+
   // フィルター状態
   const [selectedChangeTypes, setSelectedChangeTypes] = useState<string[]>([]);
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
-  
+
   // 選択されたノードの詳細表示状態
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
+
+  // カスタムノードタイプの定義
+  const nodeTypes = useMemo(
+    () => ({
+      custom: CustomNode,
+    }),
+    []
+  );
 
   // React Flowのデータを変換
   const { initialNodes, initialEdges, allPackages, allChangeTypes } = useMemo(() => {
@@ -54,7 +63,7 @@ const VisualizationFlow: React.FC = () => {
     }
 
     const { nodes, edges } = convertToFlowData(data);
-    
+
     return {
       initialNodes: nodes,
       initialEdges: edges,
@@ -66,20 +75,20 @@ const VisualizationFlow: React.FC = () => {
   // フィルター適用
   const { filteredNodes, filteredEdges } = useMemo(() => {
     let nodes = initialNodes;
-    
+
     // 変更種別でフィルター
     if (selectedChangeTypes.length > 0) {
       nodes = filterNodesByChangeType(nodes, selectedChangeTypes);
     }
-    
+
     // パッケージでフィルター
     if (selectedPackages.length > 0) {
       nodes = filterByPackage(nodes, selectedPackages);
     }
-    
+
     // エッジも表示されているノードに合わせてフィルター
     const edges = filterEdgesByNodes(initialEdges, nodes);
-    
+
     return {
       filteredNodes: nodes,
       filteredEdges: edges,
@@ -107,7 +116,7 @@ const VisualizationFlow: React.FC = () => {
     event.stopPropagation();
     setSelectedNode(node as FlowNode);
   }, []);
-  
+
   // 背景クリック時の処理（詳細パネルを閉じる）
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
@@ -136,8 +145,8 @@ const VisualizationFlow: React.FC = () => {
 
   if (error) {
     return (
-      <ErrorDisplay 
-        message={error} 
+      <ErrorDisplay
+        message={error}
         onRetry={refetch}
       />
     );
@@ -161,15 +170,16 @@ const VisualizationFlow: React.FC = () => {
       {data && data.releases && (
         <TimelineAxis versions={data.releases} />
       )}
-      
-      <div style={{ 
-        width: '100%', 
-        height: '100%', 
-        paddingTop: `${LAYOUT_CONFIG.timelineHeight}px` 
+
+      <div style={{
+        width: '100%',
+        height: '100%',
+        paddingTop: `${LAYOUT_CONFIG.timelineHeight}px`
       }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -185,14 +195,14 @@ const VisualizationFlow: React.FC = () => {
         >
         <Background color="#aaa" gap={16} />
         <Controls />
-        <MiniMap 
+        <MiniMap
           nodeColor={nodeColor}
           maskColor="rgb(240, 240, 240, 0.6)"
           pannable
           zoomable
           position="top-right"
         />
-        
+
         <Panel position="top-left">
           <FilterControls
             packages={allPackages}
@@ -205,11 +215,11 @@ const VisualizationFlow: React.FC = () => {
             filteredNodes={filteredNodes.length}
           />
         </Panel>
-        
+
         <Panel position="bottom-right">
-          <div style={{ 
-            background: 'white', 
-            padding: '10px', 
+          <div style={{
+            background: 'white',
+            padding: '10px',
             borderRadius: '8px',
             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
             fontSize: '12px',
@@ -221,7 +231,7 @@ const VisualizationFlow: React.FC = () => {
         </Panel>
         </ReactFlow>
       </div>
-      
+
       {/* パッケージ詳細表示 */}
       <PackageDetails
         selectedNode={selectedNode}
