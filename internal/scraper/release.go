@@ -140,38 +140,45 @@ func (rs *ReleaseScraper) parseReleaseDate(text string) time.Time {
 func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery.Document, version string) []StandardLibraryChange {
 	var changes []StandardLibraryChange
 
-	// h3またはh2でStandard Libraryセクションを探す
-	doc.Find("h2, h3").Each(func(i int, header *goquery.Selection) {
-		headerText := strings.ToLower(strings.TrimSpace(header.Text()))
+	// h2でStandard Libraryセクションを探す
+	doc.Find("h2").Each(func(i int, h2Header *goquery.Selection) {
+		headerText := strings.ToLower(strings.TrimSpace(h2Header.Text()))
 		
 		// "Standard Library"セクションを見つけた場合
-		if strings.Contains(headerText, "standard library") || 
-		   strings.Contains(headerText, "library") {
+		if strings.Contains(headerText, "standard library") {
+			log.Printf("Go %s: Standard Libraryセクションを発見: %q", version, headerText)
 			
-			log.Printf("Go %s: Standard Libraryセクションを発見", version)
-			
-			// h4タグでパッケージセクションを探す
-			header.NextAll().Each(func(j int, elem *goquery.Selection) {
-				// 次のメジャーセクション（h2, h3）に到達したら終了
-				if elem.Is("h2") || elem.Is("h3") {
+			// Standard Library以降のh3タグを処理
+			h2Header.NextAll().Each(func(j int, elem *goquery.Selection) {
+				// 次のh2セクションに到達したら終了
+				if elem.Is("h2") {
 					return
 				}
 				
-				// h4タグでパッケージ名を探す
-				if elem.Is("h4") {
-					packageName := rs.extractPackageNameFromHeader(elem)
-					if packageName != "" {
-						// パッケージの変更内容を抽出
-						description := rs.extractPackageDescription(elem)
-						changeType := rs.determineChangeType(description)
-						
-						changes = append(changes, StandardLibraryChange{
-							Package:     packageName,
-							ChangeType:  changeType,
-							Description: description,
-						})
-						
-						log.Printf("Go %s: パッケージ %s の変更を抽出", version, packageName)
+				// h3タグを処理
+				if elem.Is("h3") {
+					h3Text := strings.TrimSpace(elem.Text())
+					h3TextLower := strings.ToLower(h3Text)
+					
+					// minor changes to the libraryセクションの場合
+					if strings.Contains(h3TextLower, "minor") && strings.Contains(h3TextLower, "library") {
+						log.Printf("Go %s: Minor changesセクションを処理: %q", version, h3Text)
+						rs.extractMinorChanges(elem, version, &changes)
+					} else {
+						// h3の内容をパッケージ名として処理
+						packageName := rs.extractPackageNameFromH3(h3Text)
+						if packageName != "" {
+							description := rs.extractH3Description(elem)
+							changeType := rs.determineChangeType(description)
+							
+							changes = append(changes, StandardLibraryChange{
+								Package:     packageName,
+								ChangeType:  changeType,
+								Description: description,
+							})
+							
+							log.Printf("Go %s: パッケージ %s の変更を抽出", version, packageName)
+						}
 					}
 				}
 			})
@@ -179,6 +186,149 @@ func (rs *ReleaseScraper) extractStandardLibraryChangesFromDocument(doc *goquery
 	})
 
 	return changes
+}
+
+// h3テキストからパッケージ名を抽出
+func (rs *ReleaseScraper) extractPackageNameFromH3(h3Text string) string {
+	// "New math/rand/v2 package" -> "math/rand/v2"
+	// "New go/version package" -> "go/version"
+	if strings.Contains(strings.ToLower(h3Text), "new") && strings.Contains(strings.ToLower(h3Text), "package") {
+		// "New" と "package" の間の文字列を抽出
+		words := strings.Fields(h3Text)
+		for i, word := range words {
+			if strings.ToLower(word) == "new" && i+1 < len(words) {
+				next := words[i+1]
+				// パッケージ名らしい文字列かチェック
+				if rs.isValidPackageName(next) {
+					return next
+				}
+			}
+		}
+	}
+	
+	// "Enhanced routing patterns" などの場合は対象のパッケージを推測
+	if strings.Contains(strings.ToLower(h3Text), "routing") {
+		return "net/http"
+	}
+	
+	return ""
+}
+
+// h3の説明文を抽出
+func (rs *ReleaseScraper) extractH3Description(h3 *goquery.Selection) string {
+	var descriptions []string
+	
+	// h3の次の要素から次のh3またはh2までの内容を収集
+	h3.NextAll().Each(func(i int, elem *goquery.Selection) {
+		// 次のh3やh2に到達したら終了
+		if elem.Is("h3") || elem.Is("h2") {
+			return
+		}
+		
+		if elem.Is("p") {
+			text := strings.TrimSpace(elem.Text())
+			if text != "" {
+				descriptions = append(descriptions, text)
+			}
+		}
+	})
+	
+	// 最初の200文字に制限
+	fullDescription := strings.Join(descriptions, " ")
+	if len(fullDescription) > 200 {
+		fullDescription = fullDescription[:200] + "..."
+	}
+	
+	return fullDescription
+}
+
+// Minor changesセクションを処理
+func (rs *ReleaseScraper) extractMinorChanges(h3 *goquery.Selection, version string, changes *[]StandardLibraryChange) {
+	// minor changes セクション以降のh4またはdtタグを処理
+	h3.NextAll().Each(func(i int, elem *goquery.Selection) {
+		// 次のh3やh2に到達したら終了
+		if elem.Is("h3") || elem.Is("h2") {
+			return
+		}
+		
+		// Go 1.22の場合はdtタグを処理
+		if version == "1.22" && elem.Is("dt") {
+			packageName := rs.extractPackageNameFromDt(elem)
+			if packageName != "" {
+				description := rs.extractDtDescription(elem)
+				changeType := rs.determineChangeType(description)
+				
+				*changes = append(*changes, StandardLibraryChange{
+					Package:     packageName,
+					ChangeType:  changeType,
+					Description: description,
+				})
+				
+				log.Printf("Go %s: パッケージ %s の変更を抽出 (dt)", version, packageName)
+			}
+		} else if elem.Is("h4") {
+			// 他のバージョンの場合はh4タグを処理
+			packageName := rs.extractPackageNameFromHeader(elem)
+			if packageName != "" {
+				description := rs.extractPackageDescription(elem)
+				changeType := rs.determineChangeType(description)
+				
+				*changes = append(*changes, StandardLibraryChange{
+					Package:     packageName,
+					ChangeType:  changeType,
+					Description: description,
+				})
+				
+				log.Printf("Go %s: パッケージ %s の変更を抽出 (h4)", version, packageName)
+			}
+		}
+	})
+}
+
+// dtタグからパッケージ名を抽出
+func (rs *ReleaseScraper) extractPackageNameFromDt(dt *goquery.Selection) string {
+	// dtタグ内のcode要素またはリンクからパッケージ名を抽出
+	var packageName string
+	
+	// code要素を探す
+	dt.Find("code").Each(func(i int, code *goquery.Selection) {
+		text := strings.TrimSpace(code.Text())
+		if rs.isValidPackageName(text) && packageName == "" {
+			packageName = text
+		}
+	})
+	
+	// リンクのテキストを探す
+	if packageName == "" {
+		dt.Find("a").Each(func(i int, link *goquery.Selection) {
+			text := strings.TrimSpace(link.Text())
+			if rs.isValidPackageName(text) && packageName == "" {
+				packageName = text
+			}
+		})
+	}
+	
+	// 直接テキストから抽出
+	if packageName == "" {
+		text := dt.Text()
+		packageName = rs.extractPackageNameFromText(text)
+	}
+	
+	return packageName
+}
+
+// dtタグの説明を抽出
+func (rs *ReleaseScraper) extractDtDescription(dt *goquery.Selection) string {
+	// dtの次のddタグの内容を取得
+	dd := dt.Next()
+	if dd.Is("dd") {
+		text := strings.TrimSpace(dd.Text())
+		if len(text) > 200 {
+			text = text[:200] + "..."
+		}
+		return text
+	}
+	return dt.Text()
 }
 
 func (rs *ReleaseScraper) extractPackageNameFromHeader(h4 *goquery.Selection) string {
@@ -245,8 +395,8 @@ func (rs *ReleaseScraper) isValidPackageName(text string) bool {
 		return false
 	}
 	
-	// 基本的なパッケージ名のパターン
-	packageRegex := regexp.MustCompile(`^[a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*$`)
+	// 基本的なパッケージ名のパターン（v2パッケージにも対応）
+	packageRegex := regexp.MustCompile(`^[a-z][a-z0-9]*(?:/[a-z][a-z0-9]*)*(?:/v[0-9]+)?$`)
 	return packageRegex.MatchString(text)
 }
 
