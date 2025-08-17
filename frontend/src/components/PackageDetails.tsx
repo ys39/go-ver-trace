@@ -11,6 +11,11 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
 
   const { data } = selectedNode;
 
+  // リリースノートのURLを生成
+  const getReleaseNotesUrl = (version: string): string => {
+    return `https://go.dev/doc/go${version}`;
+  };
+
   return (
     <div style={{
       position: 'absolute',
@@ -141,10 +146,43 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
           リリース日
         </label>
         <div style={{
-          fontSize: '14px',
-          color: '#1f2937',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}>
-          {new Date(data.releaseDate).toLocaleDateString('ja-JP')}
+          <div style={{
+            fontSize: '14px',
+            color: '#1f2937',
+          }}>
+            {new Date(data.releaseDate).toLocaleDateString('ja-JP')}
+          </div>
+          <a
+            href={getReleaseNotesUrl(data.version)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 12px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#2563eb';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#3b82f6';
+            }}
+          >
+            <span>リリースノート</span>
+            <span style={{ fontSize: '10px' }}>↗</span>
+          </a>
         </div>
       </div>
 
