@@ -36,6 +36,7 @@ export const convertToFlowData = (data: VisualizationData) => {
       (a, b) => new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
     );
 
+    // パッケージごとに独立してpreviousNodeIdを管理
     let previousNodeId: string | null = null;
 
     sortedEvolution.forEach((change: PackageVersionChange, evolutionIndex) => {
@@ -67,22 +68,28 @@ export const convertToFlowData = (data: VisualizationData) => {
 
       nodes.push(node);
 
-      // 前のバージョンからのエッジを作成
+      // 前のバージョンからのエッジを作成（同じパッケージ内でのみ）
       if (previousNodeId && evolutionIndex > 0) {
-        const edge: FlowEdge = {
-          id: `${previousNodeId}-to-${nodeId}`,
-          source: previousNodeId,
-          target: nodeId,
-          type: 'smoothstep',
-          animated: change.change_type === 'Added',
-          style: getEdgeStyle(change.change_type),
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: getChangeTypeColor(change.change_type),
-          },
-        };
+        // previousNodeIdが確実に同じパッケージのものであることを確認
+        const previousChange = sortedEvolution[evolutionIndex - 1];
+        const expectedPreviousNodeId = `${packageName}-${previousChange.version}`;
+        
+        if (previousNodeId === expectedPreviousNodeId && previousChange.version !== change.version) {
+          const edge: FlowEdge = {
+            id: `${previousNodeId}-to-${nodeId}`,
+            source: previousNodeId,
+            target: nodeId,
+            type: 'smoothstep',
+            animated: change.change_type === 'Added',
+            style: getEdgeStyle(change.change_type),
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: getChangeTypeColor(change.change_type),
+            },
+          };
 
-        edges.push(edge);
+          edges.push(edge);
+        }
       }
 
       previousNodeId = nodeId;
