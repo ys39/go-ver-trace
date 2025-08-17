@@ -1,0 +1,316 @@
+[
+  {
+    "version": "go1.23.1",
+    "package": "encoding/gob",
+    "change": "Security fix: stack exhaustion in Decoder.Decode (CVE-2024-34156).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69145"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "go/build/constraint",
+    "change": "Security fix: stack exhaustion in Parse (CVE-2024-34158).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69149"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "go/parser",
+    "change": "Security fix: stack exhaustion in Parse* functions (CVE-2024-34155).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69143"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "database/sql",
+    "change": "Bug fix: panic in database/sql.(*connRequestSet).deleteIndex.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69087"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "go/types",
+    "change": "Bug fixes.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "os",
+    "change": "Bug fix: CopyFS overwriting existing file in destination.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/68973"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "runtime/trace",
+    "change": "Bug fix: crash during traceAdvance when collecting call stack for cgo-calling goroutine.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69087"
+    ]
+  },
+  {
+    "version": "go1.23.1",
+    "package": "unique",
+    "change": "Bug fix: panic when calling unique.Make with string casted as any.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/68994"
+    ]
+  },
+  {
+    "version": "go1.23.2",
+    "package": "maps",
+    "change": "Bug fix: segmentation violation in maps.Clone.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69219"
+    ]
+  },
+  {
+    "version": "go1.23.2",
+    "package": "os",
+    "change": "Bug fix: double close pidfd if caller uses pidfd updated by os.StartProcess.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69156"
+    ]
+  },
+  {
+    "version": "go1.23.2",
+    "package": "os/exec",
+    "change": "Bug fix: resource leak on exec failure.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69402"
+    ]
+  },
+  {
+    "version": "go1.23.2",
+    "package": "time",
+    "change": "Bug fix: timer.Stop returns false unexpectedly when no value is read from channel (interaction with runtime timers).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69333"
+    ]
+  },
+  {
+    "version": "go1.23.2",
+    "package": "unique",
+    "change": "Bug fixes: large string still referenced after interning small substring; fatal error: found pointer to free object.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69383",
+      "https://github.com/golang/go/issues/69333"
+    ]
+  },
+  {
+    "version": "go1.23.3",
+    "package": "net/http",
+    "change": "Bug fixes: short writes with FileServer on macOS; pprof interaction causing panics.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/70020",
+      "https://github.com/golang/go/issues/70001"
+    ]
+  },
+  {
+    "version": "go1.23.3",
+    "package": "os",
+    "change": "Bug fix: os.checkPidfd() crash with SIGSYS.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/69746"
+    ]
+  },
+  {
+    "version": "go1.23.3",
+    "package": "syscall",
+    "change": "Bug fixes related to platform behavior (see milestone).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.4",
+    "package": "syscall",
+    "change": "Bug fix: SyscallN always escapes variadic argument.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/70239"
+    ]
+  },
+  {
+    "version": "go1.23.4",
+    "package": "time",
+    "change": "Test fix: TestLoadFixed failures.",
+    "links": [
+      "https://github.com/golang/go/issues/70323"
+    ]
+  },
+  {
+    "version": "go1.23.4",
+    "package": "sync/atomic",
+    "change": "Test fix: TestNilDeref flaky failure on windows-386.",
+    "links": [
+      "https://github.com/golang/go/issues/70475"
+    ]
+  },
+  {
+    "version": "go1.23.4",
+    "package": "weak",
+    "change": "Test fix: TestIssue69210 failures.",
+    "links": [
+      "https://github.com/golang/go/issues/70469"
+    ]
+  },
+  {
+    "version": "go1.23.5",
+    "package": "net/http",
+    "change": "Security fix: sensitive headers incorrectly sent after cross-domain redirect (CVE-2024-45336).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/71211"
+    ]
+  },
+  {
+    "version": "go1.23.5",
+    "package": "crypto/x509",
+    "change": "Security fix: IPv6 zone IDs can bypass URI name constraints (CVE-2024-45341).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/71208"
+    ]
+  },
+  {
+    "version": "go1.23.5",
+    "package": "net",
+    "change": "Bug fixes in networking stack (details in milestone).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.5",
+    "package": "os",
+    "change": "Bug fix: io.Copy(net.Conn, os.Stdin) on macOS terminated immediately without waiting for input.",
+    "links": [
+      "https://github.com/golang/go/issues/71104"
+    ]
+  },
+  {
+    "version": "go1.23.6",
+    "package": "crypto/elliptic",
+    "change": "Security fix in elliptic curve implementation (see release notes).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.7",
+    "package": "net/http",
+    "change": "Security fix (CVE-2025-22870).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/71985"
+    ]
+  },
+  {
+    "version": "go1.23.7",
+    "package": "reflect",
+    "change": "Bug fixes: Value.Seq iteration type mismatches and panics.",
+    "links": [
+      "https://github.com/golang/go/issues/71962",
+      "https://github.com/golang/go/issues/71915"
+    ]
+  },
+  {
+    "version": "go1.23.7",
+    "package": "syscall",
+    "change": "Bug fixes (per release notes).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.7",
+    "package": "os",
+    "change": "Bug fix: spurious SIGCHILD on running child process.",
+    "links": [
+      "https://github.com/golang/go/issues/71875"
+    ]
+  },
+  {
+    "version": "go1.23.8",
+    "package": "net/http",
+    "change": "Security fix: reject bare LF in chunked encoding.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/72114"
+    ]
+  },
+  {
+    "version": "go1.23.9",
+    "package": "(none)",
+    "change": "No standard library package fixes called out in release notes (runtime/linker only).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.10",
+    "package": "net/http",
+    "change": "Security fix: sensitive headers not cleared on cross-origin redirect (CVE-2025-4673).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/73905"
+    ]
+  },
+  {
+    "version": "go1.23.10",
+    "package": "os",
+    "change": "Security-related fix: inconsistent handling of O_CREATE|O_EXCL across Unix and Windows.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/73719"
+    ]
+  },
+  {
+    "version": "go1.23.11",
+    "package": "(none)",
+    "change": "No standard library package fixes called out in release notes (security fix in cmd/go).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor"
+    ]
+  },
+  {
+    "version": "go1.23.12",
+    "package": "database/sql",
+    "change": "Security fix: incorrect results returned from Rows.Scan (CVE-2025-47907).",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/74832"
+    ]
+  },
+  {
+    "version": "go1.23.12",
+    "package": "os/exec",
+    "change": "Security-related fix: LookPath mis-expands \"\", \".\", \"..\" in certain PATH configurations.",
+    "links": [
+      "https://go.dev/doc/devel/release#go1.23.minor",
+      "https://github.com/golang/go/issues/74803"
+    ]
+  }
+]

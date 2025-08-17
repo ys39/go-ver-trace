@@ -16,6 +16,11 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
     return `https://go.dev/doc/go${version}`;
   };
 
+  // マイナーリビジョンかどうかを判定
+  const isMinorRevision = (version: string): boolean => {
+    return version.split('.').length > 2;
+  };
+
   return (
     <div style={{
       position: 'absolute',
@@ -131,7 +136,7 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
           fontWeight: '500',
           ...getChangeTypeBadgeStyle(data.changeType),
         }}>
-          {data.changeType}
+          {getChangeTypeDisplayName(data.changeType)}
         </span>
       </div>
 
@@ -156,33 +161,68 @@ const PackageDetails: React.FC<PackageDetailsProps> = ({ selectedNode, onClose }
           }}>
             {new Date(data.releaseDate).toLocaleDateString('ja-JP')}
           </div>
-          <a
-            href={getReleaseNotesUrl(data.version)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 12px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#2563eb';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#3b82f6';
-            }}
-          >
-            <span>リリースノート</span>
-            <span style={{ fontSize: '10px' }}>↗</span>
-          </a>
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+          }}>
+            {/* マイナーリビジョンの場合はソースURLを表示 */}
+            {isMinorRevision(data.version) && data.sourceUrl && (
+              <a
+                href={data.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#b91c1c';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                }}
+              >
+                <span>Issue</span>
+                <span style={{ fontSize: '10px' }}>↗</span>
+              </a>
+            )}
+            <a
+              href={getReleaseNotesUrl(data.version)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 12px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '500',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2563eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+              }}
+            >
+              <span>リリースノート</span>
+              <span style={{ fontSize: '10px' }}>↗</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -224,6 +264,16 @@ const getChangeTypeDisplayName = (changeType: string): string => {
       return '非推奨';
     case 'Removed':
       return '削除';
+    case 'Bug Fix':
+      return 'バグ修正';
+    case 'Security Fix':
+      return 'セキュリティ修正';
+    case 'Test Fix':
+      return 'テスト修正';
+    case 'Compatibility':
+      return '互換性改善';
+    case 'Security Enhancement':
+      return 'セキュリティ強化';
     default:
       return changeType;
   }
@@ -254,6 +304,36 @@ const getChangeTypeBadgeStyle = (changeType: string): React.CSSProperties => {
         backgroundColor: '#f3f4f6',
         color: '#374151',
         border: '1px solid #d1d5db',
+      };
+    case 'Bug Fix':
+      return {
+        backgroundColor: '#ddd6fe',
+        color: '#5b21b6',
+        border: '1px solid #c4b5fd',
+      };
+    case 'Security Fix':
+      return {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        border: '1px solid #fecaca',
+      };
+    case 'Test Fix':
+      return {
+        backgroundColor: '#f0f9ff',
+        color: '#0c4a6e',
+        border: '1px solid #bae6fd',
+      };
+    case 'Compatibility':
+      return {
+        backgroundColor: '#f0fdf4',
+        color: '#14532d',
+        border: '1px solid #bbf7d0',
+      };
+    case 'Security Enhancement':
+      return {
+        backgroundColor: '#fef7ff',
+        color: '#86198f',
+        border: '1px solid #f5d0fe',
       };
     default:
       return {

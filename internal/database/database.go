@@ -27,6 +27,7 @@ type PackageChange struct {
 	ChangeType  string    `json:"change_type"`
 	Description string    `json:"description"`
 	SummaryJa   string    `json:"summary_ja"`
+	SourceURL   string    `json:"source_url"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -65,6 +66,7 @@ func (d *Database) createTables() error {
 			change_type TEXT NOT NULL,
 			description TEXT,
 			summary_ja TEXT,
+			source_url TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (release_id) REFERENCES releases (id) ON DELETE CASCADE
 		)`,
@@ -82,6 +84,11 @@ func (d *Database) createTables() error {
 	// 既存テーブルに summary_ja カラムを追加するマイグレーション
 	if err := d.addSummaryJaColumn(); err != nil {
 		return fmt.Errorf("failed to migrate summary_ja column: %w", err)
+	}
+
+	// 既存テーブルに source_url カラムを追加するマイグレーション
+	if err := d.addSourceURLColumn(); err != nil {
+		return fmt.Errorf("failed to migrate source_url column: %w", err)
 	}
 
 	return nil
@@ -103,6 +110,28 @@ func (d *Database) addSummaryJaColumn() error {
 	// カラムが存在しない場合のみ追加
 	if count == 0 {
 		_, err = d.db.Exec(`ALTER TABLE package_changes ADD COLUMN summary_ja TEXT`)
+		return err
+	}
+	
+	return nil
+}
+
+// 既存のテーブルに source_url カラムを追加
+func (d *Database) addSourceURLColumn() error {
+	// カラムが存在するかチェック
+	var count int
+	err := d.db.QueryRow(`
+		SELECT COUNT(*) FROM pragma_table_info('package_changes') 
+		WHERE name = 'source_url'
+	`).Scan(&count)
+	
+	if err != nil {
+		return err
+	}
+	
+	// カラムが存在しない場合のみ追加
+	if count == 0 {
+		_, err = d.db.Exec(`ALTER TABLE package_changes ADD COLUMN source_url TEXT`)
 		return err
 	}
 	
@@ -142,6 +171,15 @@ func (d *Database) SavePackageChangeWithSummary(releaseID int, packageName, chan
 	return nil
 }
 
+func (d *Database) SavePackageChangeWithSourceURL(releaseID int, packageName, changeType, description, summaryJa, sourceURL string) error {
+	query := `INSERT INTO package_changes (release_id, package, change_type, description, summary_ja, source_url) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err := d.db.Exec(query, releaseID, packageName, changeType, description, summaryJa, sourceURL)
+	if err != nil {
+		return fmt.Errorf("failed to save package change with source URL: %w", err)
+	}
+	return nil
+}
+
 func (d *Database) GetAllReleases() ([]Release, error) {
 	query := `SELECT id, version, release_date, url, created_at FROM releases ORDER BY release_date`
 	rows, err := d.db.Query(query)
@@ -163,7 +201,8 @@ func (d *Database) GetAllReleases() ([]Release, error) {
 }
 
 func (d *Database) GetPackageChanges(releaseID int) ([]PackageChange, error) {
-	query := `SELECT id, release_id, package, change_type, description, created_at 
+	query := `SELECT id, release_id, package, change_type, description, 
+			  COALESCE(summary_ja, '') as summary_ja, COALESCE(source_url, '') as source_url, created_at 
 			  FROM package_changes WHERE release_id = ? ORDER BY package`
 	rows, err := d.db.Query(query, releaseID)
 	if err != nil {
@@ -174,7 +213,7 @@ func (d *Database) GetPackageChanges(releaseID int) ([]PackageChange, error) {
 	var changes []PackageChange
 	for rows.Next() {
 		var c PackageChange
-		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.SourceURL, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan package change: %w", err)
 		}
 		changes = append(changes, c)
@@ -185,7 +224,7 @@ func (d *Database) GetPackageChanges(releaseID int) ([]PackageChange, error) {
 
 func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
 	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, 
-			  COALESCE(pc.summary_ja, '') as summary_ja, pc.created_at 
+			  COALESCE(pc.summary_ja, '') as summary_ja, COALESCE(pc.source_url, '') as source_url, pc.created_at 
 			  FROM package_changes pc
 			  JOIN releases r ON pc.release_id = r.id
 			  ORDER BY r.release_date, pc.package`
@@ -198,7 +237,7 @@ func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
 	var changes []PackageChange
 	for rows.Next() {
 		var c PackageChange
-		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.SourceURL, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan package change: %w", err)
 		}
 		changes = append(changes, c)
@@ -209,7 +248,7 @@ func (d *Database) GetAllPackageChanges() ([]PackageChange, error) {
 
 func (d *Database) GetPackageEvolution(packageName string) ([]PackageChange, error) {
 	query := `SELECT pc.id, pc.release_id, pc.package, pc.change_type, pc.description, 
-			  COALESCE(pc.summary_ja, '') as summary_ja, pc.created_at 
+			  COALESCE(pc.summary_ja, '') as summary_ja, COALESCE(pc.source_url, '') as source_url, pc.created_at 
 			  FROM package_changes pc
 			  JOIN releases r ON pc.release_id = r.id
 			  WHERE pc.package = ?
@@ -223,7 +262,7 @@ func (d *Database) GetPackageEvolution(packageName string) ([]PackageChange, err
 	var changes []PackageChange
 	for rows.Next() {
 		var c PackageChange
-		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ReleaseID, &c.Package, &c.ChangeType, &c.Description, &c.SummaryJa, &c.SourceURL, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan package change: %w", err)
 		}
 		changes = append(changes, c)
@@ -283,6 +322,7 @@ func (d *Database) GetVisualizationData() (map[string]interface{}, error) {
 						"change_type":  change.ChangeType,
 						"description":  change.Description,
 						"summary_ja":   change.SummaryJa,
+						"source_url":   change.SourceURL,
 					})
 					break
 				}
