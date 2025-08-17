@@ -1,0 +1,205 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  border-radius: 8px;
+  border: 2px solid;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transition: all 0.2s ease;
+}
+
+.react-flow__node:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2);
+}
+
+.react-flow__node-added {
+  background-color: #dcfce7;
+  border-color: #16a34a;
+  color: #166534;
+}
+
+.react-flow__node-modified {
+  background-color: #fef3c7;
+  border-color: #d97706;
+  color: #92400e;
+}
+
+.react-flow__node-deprecated {
+  background-color: #fed7d7;
+  border-color: #e53e3e;
+  color: #c53030;
+}
+
+.react-flow__node-removed {
+  background-color: #f3f4f6;
+  border-color: #6b7280;
+  color: #374151;
+  text-decoration: line-through;
+}
+
+.react-flow__edge {
+  stroke-width: 2;
+}
+
+.react-flow__edge-added {
+  stroke: #16a34a;
+}
+
+.react-flow__edge-modified {
+  stroke: #d97706;
+}
+
+.react-flow__edge-deprecated {
+  stroke: #e53e3e;
+  stroke-dasharray: 5,5;
+}
+
+.react-flow__edge-removed {
+  stroke: #6b7280;
+  stroke-dasharray: 10,5;
+}
+
+/* Controls */
+.react-flow__controls {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.react-flow__controls-button {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f3f4f6;
+}
+
+/* Minimap */
+.react-flow__minimap {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Loading and error states */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  gap: 20px;
+  color: #dc2626;
+}
+
+/* Filter controls */
+.filter-controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  min-width: 250px;
+}
+
+.filter-group {
+  margin-bottom: 16px;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.filter-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.filter-checkbox label {
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filter-controls {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  .react-flow__node {
+    font-size: 10px;
+  }
+}
