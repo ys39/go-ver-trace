@@ -285,36 +285,71 @@ func (rs *ReleaseScraper) extractMinorChanges(h3 *goquery.Selection, version str
 	})
 }
 
-// dtタグからパッケージ名を抽出
+// dtタグからパッケージ名を抽出（Go 1.22用：hrefからパッケージ名を取得）
 func (rs *ReleaseScraper) extractPackageNameFromDt(dt *goquery.Selection) string {
-	// dtタグ内のcode要素またはリンクからパッケージ名を抽出
+	// dtタグ内のリンクのhref属性からパッケージ名を抽出
 	var packageName string
 	
-	// code要素を探す
-	dt.Find("code").Each(func(i int, code *goquery.Selection) {
-		text := strings.TrimSpace(code.Text())
-		if rs.isValidPackageName(text) && packageName == "" {
-			packageName = text
+	dt.Find("a").Each(func(i int, link *goquery.Selection) {
+		href, exists := link.Attr("href")
+		if exists && packageName == "" {
+			// href="/pkg/archive/tar/" から "archive/tar" を抽出
+			packageName = rs.extractPackageNameFromHref(href)
+		}
+		
+		// hrefが取得できない場合はリンクテキストを使用
+		if packageName == "" {
+			text := strings.TrimSpace(link.Text())
+			if rs.isValidPackageName(text) {
+				packageName = text
+			}
 		}
 	})
 	
-	// リンクのテキストを探す
+	// リンクが見つからない場合はcode要素を探す
 	if packageName == "" {
-		dt.Find("a").Each(func(i int, link *goquery.Selection) {
-			text := strings.TrimSpace(link.Text())
+		dt.Find("code").Each(func(i int, code *goquery.Selection) {
+			text := strings.TrimSpace(code.Text())
 			if rs.isValidPackageName(text) && packageName == "" {
 				packageName = text
 			}
 		})
 	}
 	
-	// 直接テキストから抽出
+	// 最後の手段として直接テキストから抽出
 	if packageName == "" {
 		text := dt.Text()
 		packageName = rs.extractPackageNameFromText(text)
 	}
 	
 	return packageName
+}
+
+// href属性からパッケージ名を抽出
+func (rs *ReleaseScraper) extractPackageNameFromHref(href string) string {
+	// "/pkg/archive/tar/" -> "archive/tar"
+	// "/pkg/net/http/" -> "net/http"
+	// "#archive/tar" -> "archive/tar"
+	
+	// /pkg/ プレフィックスを除去
+	if strings.HasPrefix(href, "/pkg/") {
+		href = strings.TrimPrefix(href, "/pkg/")
+	}
+	
+	// # プレフィックスを除去
+	if strings.HasPrefix(href, "#") {
+		href = strings.TrimPrefix(href, "#")
+	}
+	
+	// 末尾の / を除去
+	href = strings.TrimSuffix(href, "/")
+	
+	// 有効なパッケージ名かチェック
+	if rs.isValidPackageName(href) {
+		return href
+	}
+	
+	return ""
 }
 
 // dtタグの説明を抽出

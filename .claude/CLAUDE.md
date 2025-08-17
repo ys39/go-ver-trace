@@ -17,7 +17,7 @@ Go 言語のバージョン毎の特徴や変更点を把握して、standard li
 - https://go.dev/doc/go1.xx からのデータ取得ルール
   - h2 で Standard library と書かれた html 以降の h3 タグの内容をデータとして格納する
   - h2 で Standard library と書かれた html 以降の h3 タグの内容が minor_library_changes の場合は h3 の内容をパッケージ名として、h4 の内容を変更点としてデータとして格納する
-  - ただし 1.22 の場合、h2 で Standard library と書かれた html 以降の h3 タグの内容が minor_library_changes の場合は h4 の内容でなく dt の内容を変更点としてデータとして格納する
+  - ただし 1.22 の場合、h2 で Standard library と書かれた html 以降の h3 タグの内容が minor_library_changes の場合は h4 の内容でなく dt の中の href の内容を変更パッケージ、dd の中の内容を変更点としてデータとして格納する
 
 # 技術要件
 

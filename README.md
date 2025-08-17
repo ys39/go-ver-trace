@@ -1,15 +1,15 @@
 # Go Version Trace
 
-Go言語のバージョン毎の標準ライブラリ変更点をReact Flowで視覚化するWebアプリケーション
+Go 言語のバージョン毎の標準ライブラリ変更点を React Flow で視覚化する Web アプリケーション
 
 ## 概要
 
-Go Version Traceは、Go言語の各メジャーバージョン（1.21〜1.25）における標準ライブラリの変更点を収集・解析し、インタラクティブな遷移図として視覚化するWebアプリケーションです。
+Go Version Trace は、Go 言語の各メジャーバージョン（1.21〜1.25）における標準ライブラリの変更点を収集・解析し、インタラクティブな遷移図として視覚化する Web アプリケーションです。
 
-## 🚀 新機能（React Flow版）
+## 🚀 新機能（React Flow 版）
 
-- **インタラクティブな遷移図**: React Flowを使用した美しい可視化
-- **フロントエンド・バックエンド分離**: ReactとGoの完全分離
+- **インタラクティブな遷移図**: React Flow を使用した美しい可視化
+- **フロントエンド・バックエンド分離**: React と Go の完全分離
 - **リアルタイムフィルタリング**: パッケージと変更種別でのフィルタ
 - **ズーム・パン・ミニマップ**: 直感的なナビゲーション
 - **レスポンシブデザイン**: モバイル対応
@@ -26,8 +26,8 @@ Go Version Traceは、Go言語の各メジャーバージョン（1.21〜1.25）
 
 ### 前提条件
 
-- Go 1.23以上
-- Node.js 18以上
+- Go 1.23 以上
+- Node.js 18 以上
 - SQLite
 
 ### セットアップ
@@ -60,12 +60,14 @@ go build -o bin/go-ver-trace ./cmd/server
 
 ### 2. サーバー起動
 
-**バックエンドAPI（ターミナル1）:**
+**バックエンド API（ターミナル 1）:**
+
 ```bash
 ./bin/go-ver-trace -port 8080
 ```
 
-**フロントエンド開発サーバー（ターミナル2）:**
+**フロントエンド開発サーバー（ターミナル 2）:**
+
 ```bash
 cd frontend
 npm run dev
@@ -78,11 +80,11 @@ npm run dev
 
 ## 📊 可視化機能
 
-### React Flow遷移図
+### React Flow 遷移図
 
 - **ノード**: 各パッケージのバージョン別変更
 - **エッジ**: バージョン間の進化を線で表現
-- **色分け**: 
+- **色分け**:
   - 🟢 緑: Added（新機能）
   - 🟡 黄: Modified（変更）
   - 🔴 赤: Deprecated（非推奨）
@@ -98,6 +100,7 @@ npm run dev
 ## API エンドポイント
 
 ### GET /api/health
+
 ```json
 {
   "status": "ok",
@@ -109,7 +112,9 @@ npm run dev
 ```
 
 ### GET /api/visualization
+
 可視化用データを取得
+
 ```json
 {
   "releases": [...],
@@ -119,7 +124,7 @@ npm run dev
       {
         "version": "1.21",
         "release_date": "2023-08-08T00:00:00Z",
-        "change_type": "Added", 
+        "change_type": "Added",
         "description": "ResponseController.EnableFullDuplex..."
       }
     ]
@@ -127,7 +132,8 @@ npm run dev
 }
 ```
 
-### その他のAPI
+### その他の API
+
 - `GET /api/releases` - 全リリース一覧
 - `GET /api/packages` - 全パッケージ一覧
 - `GET /api/package/{name}` - 特定パッケージの変更履歴
@@ -196,52 +202,14 @@ CREATE TABLE package_changes (
 ## データ統計（現在）
 
 - **追跡バージョン**: Go 1.21, 1.23, 1.24, 1.25
-- **パッケージ数**: 78パッケージ
-- **総変更数**: 278件
+- **パッケージ数**: 78 パッケージ
+- **総変更数**: 278 件
 - **変更種別**:
-  - Added: 158件
-  - Modified: 110件
-  - Deprecated: 6件
-  - Removed: 4件
-
-## トラブルシューティング
-
-### よくある問題
-
-1. **API接続エラー**
-   ```bash
-   # Goサーバーが起動しているか確認
-   curl http://localhost:8080/api/health
-   ```
-
-2. **CORS エラー**
-   - サーバーは自動的にCORS対応済み
-   - `Access-Control-Allow-Origin: *` を設定
-
-3. **データが表示されない**
-   ```bash
-   # データを再取得
-   ./bin/go-ver-trace -data-only
-   ```
-
-### パフォーマンス最適化
-
-- 大量ノード表示時はフィルタリング推奨
-- ブラウザのハードウェアアクセラレーション有効化
-- React Flow のメモ化機能活用
-
-## ライセンス
-
-MIT License
-
-## 貢献
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+  - Added: 158 件
+  - Modified: 110 件
+  - Deprecated: 6 件
+  - Removed: 4 件
 
 ---
 
-**Note**: 現在のデータは実際のGo公式ドキュメントから取得されています。新しいGoバージョンがリリースされた際は、データ再取得を実行してください。
+**Note**: 現在のデータは実際の Go 公式ドキュメントから取得されています。新しい Go バージョンがリリースされた際は、データ再取得を実行してください。
