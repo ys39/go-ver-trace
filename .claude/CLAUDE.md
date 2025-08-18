@@ -5,7 +5,7 @@ Go 言語のバージョン毎の標準ライブラリ変更点を React Flow �
 ## アプリケーション基本情報
 
 - **目的**: Go 言語の標準ライブラリの進化を時系列で視覚的に追跡
-- **対象バージョン**: Go 1.18 〜 1.25（8世代）
+- **対象バージョン**: Go 1.18 〜 1.25（26リリース、マイナーバージョン含む）
 - **データソース**: 公式 Go リリースノート（https://go.dev/doc/devel/release）
 - **可視化方式**: React Flow を使用したインタラクティブなフロー図
 
@@ -60,10 +60,31 @@ Go 言語のバージョン毎の標準ライブラリ変更点を React Flow �
 ### データベーススキーマ
 ```sql
 -- リリース情報
-releases (id, version, release_date, url, created_at)
+CREATE TABLE releases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version TEXT UNIQUE NOT NULL,
+    release_date DATETIME NOT NULL,
+    url TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- パッケージ変更
-package_changes (id, release_id, package, change_type, description, summary_ja, created_at)
+CREATE TABLE package_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    release_id INTEGER NOT NULL,
+    package TEXT NOT NULL,
+    change_type TEXT NOT NULL,
+    description TEXT,
+    summary_ja TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    source_url TEXT,
+    FOREIGN KEY (release_id) REFERENCES releases (id) ON DELETE CASCADE
+);
+
+-- インデックス
+CREATE INDEX idx_package_changes_package ON package_changes (package);
+CREATE INDEX idx_package_changes_change_type ON package_changes (change_type);
+CREATE INDEX idx_releases_version ON releases (version);
 ```
 
 ## 開発・運用
@@ -96,9 +117,18 @@ cd frontend && npm run dev
 - ✅ API エンドポイント完備
 
 ### 統計データ（2025年8月時点）
-- 追跡リリース: 8バージョン（Go 1.18〜1.25）
-- 総変更数: 推定 3,500〜4,000件
-- パッケージ: 多数の標準ライブラリパッケージ
+- 追跡リリース: 26リリース（Go 1.18〜1.25、マイナーバージョン含む）
+- 総変更数: 3,439件
+- ユニークパッケージ: 113パッケージ
+- 変更種別内訳:
+  - Modified: 2,181件 (63.4%)
+  - Added: 1,100件 (32.0%)
+  - Deprecated: 55件 (1.6%)
+  - Removed: 44件 (1.3%)
+  - Bug Fix: 27件 (0.8%)
+  - Security Fix: 17件 (0.5%)
+  - Base: 12件 (0.3%)
+  - その他: 3件 (0.1%)
 
 ## Claude Code 開発ガイドライン
 
