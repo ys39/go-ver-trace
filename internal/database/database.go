@@ -352,3 +352,45 @@ func (d *Database) ClearData() error {
 
 	return nil
 }
+
+// GetDB returns the underlying sql.DB for advanced operations
+func (d *Database) GetDB() *sql.DB {
+	return d.db
+}
+
+// GetReleaseID returns the release ID for a given version
+func (d *Database) GetReleaseID(version string) (int, error) {
+	var releaseID int
+	err := d.db.QueryRow("SELECT id FROM releases WHERE version = ?", version).Scan(&releaseID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get release ID for version %s: %w", version, err)
+	}
+	return releaseID, nil
+}
+
+// GetPackagesInVersion returns all packages that have changes in a specific version
+func (d *Database) GetPackagesInVersion(version string) ([]string, error) {
+	query := `
+		SELECT DISTINCT pc.package 
+		FROM package_changes pc 
+		JOIN releases r ON pc.release_id = r.id 
+		WHERE r.version = ?
+	`
+	
+	rows, err := d.db.Query(query, version)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query packages for version %s: %w", version, err)
+	}
+	defer rows.Close()
+
+	var packages []string
+	for rows.Next() {
+		var pkg string
+		if err := rows.Scan(&pkg); err != nil {
+			return nil, fmt.Errorf("failed to scan package: %w", err)
+		}
+		packages = append(packages, pkg)
+	}
+
+	return packages, nil
+}

@@ -22,11 +22,29 @@ export const convertToFlowData = (data: VisualizationData) => {
       new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
   );
 
+  // メジャーバージョンとマイナーバージョンを分類
+  const { majorVersions, minorVersionGroups } =
+    classifyVersions(sortedReleases);
+
   // パッケージをアルファベット順にソート
   const sortedPackages = [...data.packages].sort();
 
   // 共通レイアウト設定を使用
   const layout = LAYOUT_CONFIG;
+
+  // 各パッケージでマイナーバージョンの数を計算して適切な間隔を決定
+  const packageMinorCounts = calculatePackageMinorCounts(
+    data,
+    sortedPackages,
+    minorVersionGroups
+  );
+  const minorCountValues = sortedPackages.map(
+    (pkg) => packageMinorCounts[pkg] || 0
+  );
+  const maxMinorVersions = Math.max(...minorCountValues);
+
+  // パッケージ間隔を動的に調整（マイナーバージョンの数に応じて）
+  const adjustedPackageSpacing = layout.packageSpacing + maxMinorVersions * 30; // マイナーバージョン毎に30px追加
 
   // 各パッケージのノードとエッジを生成
   sortedPackages.forEach((packageName, packageIndex) => {
@@ -39,72 +57,40 @@ export const convertToFlowData = (data: VisualizationData) => {
         new Date(a.release_date).getTime() - new Date(b.release_date).getTime()
     );
 
-    // パッケージごとに独立してpreviousNodeIdを管理
-    let previousNodeId: string | null = null;
+    // 調整されたレイアウト設定を使用
+    const adjustedLayout = {
+      ...layout,
+      packageSpacing: adjustedPackageSpacing,
+    };
 
-    sortedEvolution.forEach((change: PackageVersionChange, evolutionIndex) => {
-      const versionIndex = sortedReleases.findIndex(
-        (r) => r.version === change.version
-      );
-      if (versionIndex === -1) return;
+    // メジャーバージョンとマイナーバージョンのノードを分けて生成
+    const { majorNodes, minorNodesMap } = createVersionNodes(
+      packageName,
+      packageIndex,
+      sortedEvolution,
+      sortedReleases,
+      majorVersions,
+      minorVersionGroups,
+      adjustedLayout
+    );
 
-      const position: Position = {
-        x: layout.offsetX + versionIndex * layout.versionSpacing,
-        y: layout.offsetY + packageIndex * layout.packageSpacing,
-      };
-
-      const nodeId = `${packageName}-${change.version}`;
-
-      // ノードを作成
-      const node: FlowNode = {
-        id: nodeId,
-        type: "custom",
-        position,
-        data: {
-          label: `${packageName}\nv${change.version}`,
-          package: packageName,
-          version: change.version,
-          changeType: change.change_type,
-          description: change.description,
-          summaryJa: change.summary_ja,
-          releaseDate: change.release_date,
-        },
-        style: getNodeStyle(change.change_type),
-      };
-
-      nodes.push(node);
-
-      // 前のバージョンからのエッジを作成（同じパッケージ内でのみ）
-      if (previousNodeId && evolutionIndex > 0) {
-        // previousNodeIdが確実に同じパッケージのものであることを確認
-        const previousChange = sortedEvolution[evolutionIndex - 1];
-        const expectedPreviousNodeId = `${packageName}-${previousChange.version}`;
-
-        if (
-          previousNodeId === expectedPreviousNodeId &&
-          previousChange.version !== change.version
-        ) {
-          const edge: FlowEdge = {
-            id: `${previousNodeId}-to-${nodeId}`,
-            source: previousNodeId,
-            target: nodeId,
-            sourceHandle: "right",
-            targetHandle: "left",
-            type: "smoothstep",
-            animated: change.change_type === "Added",
-            style: getEdgeStyle(change.change_type),
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: getChangeTypeColor(change.change_type),
-            },
-          };
-
-          edges.push(edge);
-        }
-      }
-
-      previousNodeId = nodeId;
+    // ノードを追加
+    nodes.push(...majorNodes);
+    Object.keys(minorNodesMap).forEach((majorVersion) => {
+      const minorNodes = minorNodesMap[majorVersion];
+      nodes.push(...minorNodes);
     });
+
+    // エッジを生成
+    const packageEdges = createVersionEdges(
+      packageName,
+      majorNodes,
+      minorNodesMap,
+      majorVersions,
+      minorVersionGroups
+    );
+
+    edges.push(...packageEdges);
   });
 
   return { nodes, edges };
@@ -157,6 +143,35 @@ export const getNodeStyle = (changeType: string): React.CSSProperties => {
         color: "#374151",
         textDecoration: "line-through",
       };
+    case "Base":
+      return {
+        ...baseStyle,
+        backgroundColor: "#e0e7ff",
+        borderColor: "#3730a3",
+        color: "#312e81",
+        opacity: 0.8,
+      };
+    case "Security Fix":
+      return {
+        ...baseStyle,
+        backgroundColor: "#fef2f2",
+        borderColor: "#dc2626",
+        color: "#991b1b",
+      };
+    case "Bug Fix":
+      return {
+        ...baseStyle,
+        backgroundColor: "#f0f9ff",
+        borderColor: "#0ea5e9",
+        color: "#0c4a6e",
+      };
+    case "Test Fix":
+      return {
+        ...baseStyle,
+        backgroundColor: "#f7fee7",
+        borderColor: "#65a30d",
+        color: "#365314",
+      };
     default:
       return {
         ...baseStyle,
@@ -195,6 +210,28 @@ export const getEdgeStyle = (changeType: string): React.CSSProperties => {
         stroke: "#6b7280",
         strokeDasharray: "10,5",
       };
+    case "Base":
+      return {
+        ...baseStyle,
+        stroke: "#3730a3",
+        strokeWidth: 1,
+      };
+    case "Security Fix":
+      return {
+        ...baseStyle,
+        stroke: "#dc2626",
+        strokeWidth: 3,
+      };
+    case "Bug Fix":
+      return {
+        ...baseStyle,
+        stroke: "#0ea5e9",
+      };
+    case "Test Fix":
+      return {
+        ...baseStyle,
+        stroke: "#65a30d",
+      };
     default:
       return {
         ...baseStyle,
@@ -213,6 +250,14 @@ export const getChangeTypeColor = (changeType: string): string => {
       return "#e53e3e";
     case "Removed":
       return "#6b7280";
+    case "Base":
+      return "#3730a3";
+    case "Security Fix":
+      return "#dc2626";
+    case "Bug Fix":
+      return "#0ea5e9";
+    case "Test Fix":
+      return "#65a30d";
     default:
       return "#94a3b8";
   }
@@ -259,3 +304,262 @@ export const getUniqueChangeTypes = (nodes: FlowNode[]): string[] => {
   const changeTypes = new Set(nodes.map((node) => node.data.changeType));
   return Array.from(changeTypes).sort();
 };
+
+// パッケージ毎のマイナーバージョン数を計算
+function calculatePackageMinorCounts(
+  data: VisualizationData,
+  sortedPackages: string[],
+  minorVersionGroups: { [major: string]: any[] }
+): { [packageName: string]: number } {
+  const packageMinorCounts: { [packageName: string]: number } = {};
+
+  sortedPackages.forEach((packageName) => {
+    const packageEvolution = data.package_evolution[packageName];
+    if (!packageEvolution) {
+      packageMinorCounts[packageName] = 0;
+      return;
+    }
+
+    let minorCount = 0;
+    packageEvolution.forEach((change) => {
+      const versionParts = change.version.split(".");
+      if (versionParts.length === 3) {
+        // マイナーバージョン
+        minorCount++;
+      }
+    });
+
+    packageMinorCounts[packageName] = minorCount;
+  });
+
+  return packageMinorCounts;
+}
+
+// バージョンをメジャーとマイナーに分類
+function classifyVersions(releases: any[]) {
+  const majorVersions: any[] = [];
+  const minorVersionGroups: { [major: string]: any[] } = {};
+
+  releases.forEach((release) => {
+    const versionParts = release.version.split(".");
+    if (versionParts.length === 2) {
+      // メジャーバージョン (例: 1.23)
+      majorVersions.push(release);
+    } else if (versionParts.length === 3) {
+      // マイナーバージョン (例: 1.23.1)
+      const majorVersion = `${versionParts[0]}.${versionParts[1]}`;
+      if (!minorVersionGroups[majorVersion]) {
+        minorVersionGroups[majorVersion] = [];
+      }
+      minorVersionGroups[majorVersion].push(release);
+    }
+  });
+
+  return { majorVersions, minorVersionGroups };
+}
+
+// バージョンノードを作成
+function createVersionNodes(
+  packageName: string,
+  packageIndex: number,
+  sortedEvolution: PackageVersionChange[],
+  _sortedReleases: any[],
+  majorVersions: any[],
+  minorVersionGroups: { [major: string]: any[] },
+  layout: any
+) {
+  const majorNodes: FlowNode[] = [];
+  const minorNodesMap: { [major: string]: FlowNode[] } = {};
+
+  // マイナーバージョンのレイアウト設定
+  const minorSpacing = 160; // マイナーバージョン間の固定間隔（ノード重複回避）
+  const branchOffsetY = 0; // メジャーバージョンからのブランチ開始オフセット（縮小）
+
+  sortedEvolution.forEach((change: PackageVersionChange) => {
+    const versionParts = change.version.split(".");
+    const isMajor = versionParts.length === 2;
+
+    if (isMajor) {
+      // メジャーバージョンノード
+      const versionIndex = majorVersions.findIndex(
+        (r) => r.version === change.version
+      );
+      if (versionIndex === -1) return;
+
+      const position: Position = {
+        x: layout.offsetX + versionIndex * layout.versionSpacing,
+        y: layout.offsetY + packageIndex * layout.packageSpacing,
+      };
+
+      const nodeId = `${packageName}-${change.version}`;
+      const node: FlowNode = {
+        id: nodeId,
+        type: "custom",
+        position,
+        data: {
+          label: `${packageName}\nv${change.version}`,
+          package: packageName,
+          version: change.version,
+          changeType: change.change_type,
+          description: change.description,
+          summaryJa: change.summary_ja,
+          releaseDate: change.release_date,
+        },
+        style: getNodeStyle(change.change_type),
+      };
+
+      majorNodes.push(node);
+    } else {
+      // マイナーバージョンノード
+      const majorVersion = `${versionParts[0]}.${versionParts[1]}`;
+      const majorVersionIndex = majorVersions.findIndex(
+        (r) => r.version === majorVersion
+      );
+
+      if (!minorNodesMap[majorVersion]) {
+        minorNodesMap[majorVersion] = [];
+      }
+
+      const minorVersions = minorVersionGroups[majorVersion] || [];
+      const minorIndex = minorVersions.findIndex(
+        (r) => r.version === change.version
+      );
+
+      if (minorIndex === -1) return;
+
+      // マイナーバージョンは右方向に直線的に配置、メジャーバージョン毎に異なる高さ
+      let majorVersionBranchOffset = majorVersionIndex * 60; // メジャーバージョン毎に60px下にオフセット
+      // v1.24.xのみ高さを少し上げる
+      if (majorVersion === "1.24") {
+        majorVersionBranchOffset -= 160; // v1.24.xを30px上に移動
+      }
+      const position: Position = {
+        x:
+          layout.offsetX +
+          majorVersionIndex * layout.versionSpacing +
+          (minorIndex + 1) * minorSpacing,
+        y:
+          layout.offsetY +
+          packageIndex * layout.packageSpacing +
+          branchOffsetY +
+          majorVersionBranchOffset,
+      };
+
+      const nodeId = `${packageName}-${change.version}`;
+      const node: FlowNode = {
+        id: nodeId,
+        type: "custom",
+        position,
+        data: {
+          label: `${packageName}\nv${change.version}`,
+          package: packageName,
+          version: change.version,
+          changeType: change.change_type,
+          description: change.description,
+          summaryJa: change.summary_ja,
+          releaseDate: change.release_date,
+        },
+        style: getNodeStyle(change.change_type),
+      };
+
+      minorNodesMap[majorVersion].push(node);
+    }
+  });
+
+  return { majorNodes, minorNodesMap };
+}
+
+// バージョンエッジを作成
+function createVersionEdges(
+  _packageName: string,
+  majorNodes: FlowNode[],
+  minorNodesMap: { [major: string]: FlowNode[] },
+  _majorVersions: any[],
+  _minorVersionGroups: { [major: string]: any[] }
+): FlowEdge[] {
+  const edges: FlowEdge[] = [];
+
+  // メジャーバージョン間のエッジ
+  for (let i = 1; i < majorNodes.length; i++) {
+    const sourceNode = majorNodes[i - 1];
+    const targetNode = majorNodes[i];
+
+    const edge: FlowEdge = {
+      id: `${sourceNode.id}-to-${targetNode.id}`,
+      source: sourceNode.id,
+      target: targetNode.id,
+      sourceHandle: "right", // 右のハンドルから出る
+      targetHandle: "left", // 左のハンドルに接続
+      type: "straight", // 直線的なエッジ
+      animated: targetNode.data.changeType === "Added",
+      style: getEdgeStyle(targetNode.data.changeType),
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: getChangeTypeColor(targetNode.data.changeType),
+      },
+    };
+
+    edges.push(edge);
+  }
+
+  // マイナーバージョンのエッジ
+  Object.keys(minorNodesMap).forEach((majorVersion) => {
+    const minorNodes = minorNodesMap[majorVersion];
+    const majorNode = majorNodes.find(
+      (node) => node.data.version === majorVersion
+    );
+
+    if (majorNode && minorNodes.length > 0) {
+      // メジャーバージョンから最初のマイナーバージョンへの分岐エッジ（下から左）
+      const firstMinorNode = minorNodes[0];
+      const branchEdge: FlowEdge = {
+        id: `${majorNode.id}-to-${firstMinorNode.id}`,
+        source: majorNode.id,
+        target: firstMinorNode.id,
+        sourceHandle: "bottom", // メジャーバージョンの下から出る（CustomNodeのbottomハンドル）
+        targetHandle: "left", // マイナーバージョンの左に接続（CustomNodeのleftハンドル）
+        type: "default", // デフォルトタイプで確実な接続を保証
+        animated: false,
+        style: {
+          ...getEdgeStyle(firstMinorNode.data.changeType),
+          strokeDasharray: "5,5",
+          strokeWidth: 2,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: getChangeTypeColor(firstMinorNode.data.changeType),
+        },
+      };
+      edges.push(branchEdge);
+
+      // マイナーバージョン間の直線的なエッジ（水平）
+      for (let i = 1; i < minorNodes.length; i++) {
+        const sourceNode = minorNodes[i - 1];
+        const targetNode = minorNodes[i];
+
+        const edge: FlowEdge = {
+          id: `${sourceNode.id}-to-${targetNode.id}`,
+          source: sourceNode.id,
+          target: targetNode.id,
+          sourceHandle: "right", // 右のハンドルから出る
+          targetHandle: "left", // 左のハンドルに接続
+          type: "straight", // 直線的なエッジ
+          animated: targetNode.data.changeType === "Security Fix",
+          style: {
+            ...getEdgeStyle(targetNode.data.changeType),
+            strokeDasharray: "3,3",
+            strokeWidth: 1.5,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: getChangeTypeColor(targetNode.data.changeType),
+          },
+        };
+
+        edges.push(edge);
+      }
+    }
+  });
+
+  return edges;
+}

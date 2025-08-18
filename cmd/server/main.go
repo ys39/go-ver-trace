@@ -19,6 +19,7 @@ func main() {
 		refresh   = flag.Bool("refresh", false, "起動時にデータを再取得する")
 		dataOnly  = flag.Bool("data-only", false, "データ取得のみ実行してサーバーは起動しない")
 		importJSON = flag.String("import-json", "", "マイナーリビジョンJSONファイルをインポートする")
+		createBase = flag.Bool("create-base", false, "マイナーバージョンパッケージ用のベースエントリを作成する")
 	)
 	flag.Parse()
 
@@ -44,6 +45,22 @@ func main() {
 		// JSONインポートのみの場合はここで終了
 		if *dataOnly {
 			log.Println("JSONインポート完了。プログラムを終了します。")
+			return
+		}
+	}
+
+	// ベースバージョン作成
+	if *createBase {
+		log.Println("ベースバージョンエントリを作成中...")
+		if err := importer.CreateBaseVersions(db); err != nil {
+			log.Printf("ベースバージョン作成エラー: %v", err)
+		} else {
+			log.Println("ベースバージョン作成完了")
+		}
+		
+		// ベースバージョン作成のみの場合はここで終了
+		if *dataOnly {
+			log.Println("ベースバージョン作成完了。プログラムを終了します。")
 			return
 		}
 	}
