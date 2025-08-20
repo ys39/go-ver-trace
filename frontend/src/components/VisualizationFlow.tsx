@@ -32,6 +32,7 @@ import ErrorDisplay from './ErrorDisplay';
 import PackageDetails from './PackageDetails';
 import TimelineAxis from './TimelineAxis';
 import CustomNode from './CustomNode';
+import GroupNode from './GroupNode';
 
 const VisualizationFlow: React.FC = () => {
   const { data, loading, error, refetch } = useVisualizationData();
@@ -47,6 +48,7 @@ const VisualizationFlow: React.FC = () => {
   const nodeTypes = useMemo(
     () => ({
       custom: CustomNode,
+      group: GroupNode,
     }),
     []
   );

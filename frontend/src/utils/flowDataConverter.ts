@@ -58,7 +58,14 @@ export const convertToFlowData = (data: VisualizationData) => {
   // パッケージ間隔を動的に調整（マイナーバージョンの数に応じて）
   const adjustedPackageSpacing = layout.packageSpacing + maxMinorVersions * 30; // マイナーバージョン毎に30px追加
 
-  // 各パッケージのノードとエッジを生成
+  // 1. メジャーバージョングループの背景ノードを生成
+  const groupNodes = createGroupNodes(sortedReleases, majorVersions, sortedPackages.length, {
+    ...layout,
+    packageSpacing: adjustedPackageSpacing,
+  });
+  nodes.push(...groupNodes);
+
+  // 2. 各パッケージのノードとエッジを生成
   sortedPackages.forEach((packageName, packageIndex) => {
     const packageEvolution = data.package_evolution[packageName];
     if (!packageEvolution || packageEvolution.length === 0) return;
@@ -583,4 +590,86 @@ function createVersionEdges(
   });
 
   return edges;
+}
+
+// メジャーバージョングループの背景ノードを作成
+function createGroupNodes(
+  sortedReleases: any[],
+  majorVersions: any[],
+  packageCount: number,
+  layout: any
+): FlowNode[] {
+  const groupNodes: FlowNode[] = [];
+
+  // 全リリースを時系列順にソートして、各リリースに順序インデックスを付与
+  const releaseToIndex = new Map<string, number>();
+  sortedReleases.forEach((release, index) => {
+    releaseToIndex.set(release.version, index);
+  });
+
+  majorVersions.forEach((majorVersion) => {
+    // メジャーバージョンの時系列インデックスを取得
+    const majorIndex = releaseToIndex.get(majorVersion.version);
+    if (majorIndex === undefined) return;
+
+    // このメジャーバージョンに関連するマイナーバージョンの範囲を計算
+    const relatedMinorVersions = sortedReleases.filter(release => {
+      const versionParts = release.version.split('.');
+      if (versionParts.length === 3) {
+        const releaseMajorVersion = `${versionParts[0]}.${versionParts[1]}`;
+        return releaseMajorVersion === majorVersion.version;
+      }
+      return false;
+    });
+
+    // グループの開始インデックス（メジャーバージョン）
+    const startIndex = majorIndex;
+    
+    // グループの終了インデックス（最後のマイナーバージョン、またはメジャーバージョン自体）
+    let endIndex = majorIndex;
+    if (relatedMinorVersions.length > 0) {
+      const lastMinorVersion = relatedMinorVersions[relatedMinorVersions.length - 1];
+      const lastMinorIndex = releaseToIndex.get(lastMinorVersion.version);
+      if (lastMinorIndex !== undefined) {
+        endIndex = lastMinorIndex;
+      }
+    }
+
+    // グループの位置とサイズを計算
+    const startX = layout.offsetX + startIndex * layout.versionSpacing;
+    const endX = layout.offsetX + endIndex * layout.versionSpacing + layout.nodeMinWidth;
+    const groupWidth = endX - startX;
+    const groupHeight = packageCount * layout.packageSpacing + layout.nodeMinHeight + 100; // パッケージ全体を包含
+
+    const groupNode: FlowNode = {
+      id: `group-${majorVersion.version}`,
+      type: 'group',
+      position: {
+        x: startX - 20, // 少しマージンを追加
+        y: layout.offsetY - 50, // 上部にマージンを追加
+      },
+      data: {
+        label: `Go ${majorVersion.version}`,
+        majorVersion: majorVersion.version,
+        package: '', // グループノードなのでパッケージ名は空
+        version: majorVersion.version,
+        changeType: 'group',
+        description: `Go ${majorVersion.version} series`,
+        summaryJa: `Go ${majorVersion.version} シリーズ`,
+        releaseDate: majorVersion.release_date,
+      },
+      style: {
+        width: groupWidth + 40, // マージンを含む幅
+        height: groupHeight + 100, // マージンを含む高さ
+        zIndex: -10, // 他のノードより後ろに表示
+        pointerEvents: 'none', // クリック無効
+      },
+      draggable: false,
+      selectable: false,
+    };
+
+    groupNodes.push(groupNode);
+  });
+
+  return groupNodes;
 }
