@@ -272,7 +272,12 @@ func (d *Database) GetPackageEvolution(packageName string) ([]PackageChange, err
 }
 
 func (d *Database) GetUniquePackages() ([]string, error) {
-	query := `SELECT DISTINCT package FROM package_changes ORDER BY package`
+	// パッケージをリリース日順に取得（各パッケージの最初のリリース日を基準）
+	query := `SELECT DISTINCT pc.package
+			  FROM package_changes pc
+			  JOIN releases r ON pc.release_id = r.id
+			  GROUP BY pc.package
+			  ORDER BY MIN(r.release_date)`
 	rows, err := d.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query unique packages: %w", err)
