@@ -193,6 +193,9 @@ const VisualizationFlow: React.FC = () => {
           elementsSelectable={true}
           fitView
           attributionPosition="bottom-left"
+          minZoom={0.1}
+          maxZoom={2}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
           style={{ height: `calc(100% - ${LAYOUT_CONFIG.timelineHeight}px)` }}
         >
         <Background color="#aaa" gap={16} />
