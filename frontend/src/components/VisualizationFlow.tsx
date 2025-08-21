@@ -32,6 +32,7 @@ import ErrorDisplay from './ErrorDisplay';
 import PackageDetails from './PackageDetails';
 import TimelineAxis from './TimelineAxis';
 import CustomNode from './CustomNode';
+import GroupNode from './GroupNode';
 
 const VisualizationFlow: React.FC = () => {
   const { data, loading, error, refetch } = useVisualizationData();
@@ -47,6 +48,7 @@ const VisualizationFlow: React.FC = () => {
   const nodeTypes = useMemo(
     () => ({
       custom: CustomNode,
+      group: GroupNode,
     }),
     []
   );
@@ -191,6 +193,9 @@ const VisualizationFlow: React.FC = () => {
           elementsSelectable={true}
           fitView
           attributionPosition="bottom-left"
+          minZoom={0.1}
+          maxZoom={2}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
           style={{ height: `calc(100% - ${LAYOUT_CONFIG.timelineHeight}px)` }}
         >
         <Background color="#aaa" gap={16} />

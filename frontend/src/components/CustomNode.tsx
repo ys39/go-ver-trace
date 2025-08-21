@@ -19,6 +19,19 @@ interface CustomNodeProps {
 const CustomNode: React.FC<CustomNodeProps> = ({ data, style }) => {
   return (
     <div style={style}>
+      {/* 上側のハンドル（入力） */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        style={{
+          background: '#555',
+          width: '8px',
+          height: '8px',
+          border: '2px solid #fff'
+        }}
+      />
+
       {/* 左側のハンドル（入力） */}
       <Handle
         type="target"
@@ -42,6 +55,19 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data, style }) => {
         type="source"
         position={Position.Right}
         id="right"
+        style={{
+          background: '#555',
+          width: '8px',
+          height: '8px',
+          border: '2px solid #fff'
+        }}
+      />
+
+      {/* 下側のハンドル（出力） */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
         style={{
           background: '#555',
           width: '8px',

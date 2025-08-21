@@ -1,0 +1,151 @@
+[
+  {
+    "version": "go1.24.1",
+    "changes": [
+      {
+        "package": "net/http",
+        "change": "Security fix (CVE-2025-22870).",
+        "links": [
+          "https://go.dev/doc/devel/release#go1.24.minor",
+          "https://github.com/golang/go/issues/71986"
+        ]
+      },
+      {
+        "package": "os",
+        "change": "Fix: os.DevNull could not be opened with O_TRUNC on Windows.",
+        "links": [
+          "https://github.com/golang/go/issues/71836"
+        ]
+      },
+      {
+        "package": "debug/buildinfo",
+        "change": "Test fixes / stability improvements.",
+        "links": [
+          "https://github.com/golang/go/issues/71858"
+        ]
+      },
+      {
+        "package": "syscall",
+        "change": "js/wasm: add Node.js version detection to select LC_CTYPE behavior.",
+        "links": [
+          "https://github.com/golang/go/issues/71977"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "go1.24.2",
+    "changes": [
+      {
+        "package": "net/http",
+        "change": "Security hardening: reject bare LF in chunked transfer-encoding.",
+        "links": [
+          "https://github.com/golang/go/issues/72067"
+        ]
+      },
+      {
+        "package": "net/http",
+        "change": "Compatibility: set default NextProtos to preserve HTTP/2/HTTP/1.1 negotiation behavior.",
+        "links": [
+          "https://github.com/golang/go/issues/72115"
+        ]
+      },
+      {
+        "package": "crypto/tls",
+        "change": "FIPS: reject P-521 with SHA-512 combination in FIPS mode.",
+        "links": [
+          "https://github.com/golang/go/issues/72823"
+        ]
+      },
+      {
+        "package": "go/types",
+        "change": "Bug fixes backported to 1.24.2.",
+        "links": [
+          "https://github.com/golang/go/issues/72826"
+        ]
+      },
+      {
+        "package": "testing",
+        "change": "Benchmark APIs: fixes around StopTimer / Loop semantics.",
+        "links": [
+          "https://github.com/golang/go/issues/72934",
+          "https://github.com/golang/go/issues/72974"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "go1.24.3",
+    "changes": [
+      {
+        "package": "os",
+        "change": "Security fix (CVE-2025-22873): os.Root could access parent directory via a filename ending in \"../\".",
+        "links": [
+          "https://go.dev/doc/devel/release#go1.24.minor",
+          "https://github.com/golang/go/issues/73556"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "go1.24.4",
+    "changes": [
+      {
+        "package": "crypto/x509",
+        "change": "Security fix (CVE-2025-22874): ExtKeyUsageAny could bypass policy validation.",
+        "links": [
+          "https://github.com/golang/go/issues/73700"
+        ]
+      },
+      {
+        "package": "net/http",
+        "change": "Security fix (CVE-2025-4673): clear sensitive Proxy-* headers on cross-origin redirects.",
+        "links": [
+          "https://github.com/golang/go/issues/73906",
+          "https://github.com/golang/go/issues/73816"
+        ]
+      },
+      {
+        "package": "os",
+        "change": "Security fix (CVE-2025-0913): make O_CREATE|O_EXCL consistently error for symlinks; other DirFS safety hardening.",
+        "links": [
+          "https://github.com/golang/go/issues/73720",
+          "https://github.com/golang/go/issues/73702"
+        ]
+      },
+      {
+        "package": "hash/maphash",
+        "change": "Fix: purego maphash.Comparable panicked when hashing channel values.",
+        "links": [
+          "https://github.com/golang/go/issues/73669",
+          "https://github.com/golang/go/issues/73657"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "go1.24.5",
+    "changes": []
+  },
+  {
+    "version": "go1.24.6",
+    "changes": [
+      {
+        "package": "database/sql",
+        "change": "Security fix (CVE-2025-47907): cancelling during Rows.Scan could return results from a different query.",
+        "links": [
+          "https://pkg.go.dev/vuln/GO-2025-3849",
+          "https://go.dev/doc/devel/release#go1.24.minor"
+        ]
+      },
+      {
+        "package": "os/exec",
+        "change": "Security fix as announced in 1.24.6 release notes.",
+        "links": [
+          "https://go.dev/doc/devel/release#go1.24.minor",
+          "https://github.com/golang/go/issues?q=milestone%3AGo1.24.6+label%3ACherryPickApproved"
+        ]
+      }
+    ]
+  }
+]

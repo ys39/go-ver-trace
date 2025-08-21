@@ -4,7 +4,7 @@ Go 言語のバージョン毎の標準ライブラリ変更点を React Flow �
 
 ## 概要
 
-Go Version Trace は、Go 言語の各メジャーバージョン（1.18〜1.25）における標準ライブラリの変更点を収集・解析し、インタラクティブなフロー図として視覚化する Web アプリケーションです。公式の Go リリースノートから自動的にデータを取得し、パッケージの進化を時系列で追跡できます。
+Go Version Trace は、Go 言語の各バージョン（1.18〜1.25、マイナーバージョン含む26リリース）における標準ライブラリの変更点を収集・解析し、インタラクティブなフロー図として視覚化する Web アプリケーションです。公式の Go リリースノートから自動的にデータを取得し、パッケージの進化を時系列で追跡できます。
 
 ## ✨ 主要機能
 
@@ -111,9 +111,10 @@ npm run dev
 {
   "status": "ok",
   "message": "API サーバーは正常に動作しています",
-  "release_count": 5,
-  "package_count": 78,
-  "timestamp": "2025-08-17T00:52:15Z"
+  "release_count": 26,
+  "package_count": 113,
+  "total_changes": 3746,
+  "timestamp": "2025-08-21T00:00:00Z"
 }
 ```
 
@@ -196,29 +197,36 @@ CREATE TABLE releases (
 
 -- パッケージ変更
 CREATE TABLE package_changes (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     release_id INTEGER NOT NULL,
     package TEXT NOT NULL,
     change_type TEXT NOT NULL,
     description TEXT,
     summary_ja TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (release_id) REFERENCES releases(id)
+    source_url TEXT,
+    FOREIGN KEY (release_id) REFERENCES releases (id) ON DELETE CASCADE
 );
 ```
 
 ## データ統計（現在）
 
-- **追跡バージョン**: Go 1.18, 1.19, 1.20, 1.21, 1.22, 1.23, 1.24, 1.25（8リリース）
-- **総変更数**: 推定 3,500〜4,000 件
+- **追跡バージョン**: Go 1.18〜1.25（26リリース、マイナーバージョン含む）
+- **総変更数**: 3,746件
+- **ユニークパッケージ**: 113パッケージ
 - **変更種別**:
-  - Added: 新機能・新API（約60%）
-  - Modified: 既存機能の改善（約35%）
-  - Deprecated: 非推奨化（約3%）
-  - Removed: 削除された機能（約2%）
+  - Modified: 2,369件（63.3%）- 既存機能の改善
+  - Added: 1,210件（32.3%）- 新機能・新API
+  - Deprecated: 60件（1.6%）- 非推奨化
+  - Removed: 48件（1.3%）- 削除された機能
+  - Bug Fix: 27件（0.7%）- バグ修正
+  - Security Fix: 17件（0.5%）- セキュリティ修正
+  - Base: 12件（0.3%）- ベースバージョン
+  - その他: 3件（0.1%）
 
 ### リリース日程
 
+#### メジャーリリース
 - **Go 1.18**: 2022年3月15日
 - **Go 1.19**: 2022年8月2日
 - **Go 1.20**: 2023年2月1日
@@ -227,6 +235,28 @@ CREATE TABLE package_changes (
 - **Go 1.23**: 2024年8月13日
 - **Go 1.24**: 2025年2月11日
 - **Go 1.25**: 2025年8月12日
+
+#### マイナーリリース（Go 1.23.x）
+- 1.23.1: 2024年9月5日
+- 1.23.2: 2024年10月1日
+- 1.23.3: 2024年11月6日
+- 1.23.4: 2024年12月3日
+- 1.23.5: 2025年1月7日
+- 1.23.6: 2025年2月4日
+- 1.23.7: 2025年3月4日
+- 1.23.8: 2025年4月1日
+- 1.23.9: 2025年5月6日
+- 1.23.10: 2025年6月3日
+- 1.23.11: 2025年7月1日
+- 1.23.12: 2025年8月5日
+
+#### マイナーリリース（Go 1.24.x）
+- 1.24.1: 2025年3月4日
+- 1.24.2: 2025年4月1日
+- 1.24.3: 2025年5月6日
+- 1.24.4: 2025年6月5日
+- 1.24.5: 2025年7月8日
+- 1.24.6: 2025年8月6日
 
 ## 🔄 データ更新
 
